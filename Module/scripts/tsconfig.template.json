@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "alwaysStrict": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "strict": true,
+        "module": "System",
+        "target": "ES6",
+        "moduleResolution": "node"
+    },
+    "include": [
+        "./**/*.ts"
+    ],
+    "moduleResolution": "node"
+}
