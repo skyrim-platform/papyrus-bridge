@@ -1,4 +1,5 @@
 import { on, once, Game, Form, writeLogs, printConsole, Debug } from 'skyrimPlatform'
+import * as sp from 'skyrimPlatform'
 
 const skyrimPlatformBridgeEsp = 'SkyrimPlatformBridge.esp'
 const skyrimPlatformBridgeMessagesContainerId = 0xd66
@@ -14,11 +15,16 @@ function log(...args: any[]) {
 }
 
 export class PapyrusBridge {
+    modName = ''
     messagesContainerFormId = 0
     questFormId = 0
     // questForm: Form | null = null // TODO
     isListening = false
     messageHandlers = new Array<(message: PapyrusMessage) => void>()
+
+    constructor(modName: string = '') {
+        this.modName = modName
+    }
 
     public onMessage(handler: (message: PapyrusMessage) => void) {
         this.listenForMessages()
@@ -39,18 +45,23 @@ export class PapyrusBridge {
                 quest = Game.getFormFromFile(skyrimPlatformBridgeQuestId, skyrimPlatformBridgeEsp)
             }
             if (quest) {
-                quest.sendModEvent(skyrimPlatformBridgeDefaultMessageSkseModEventName, text, 0)
+                const handle: any = (sp as any).ModEvent.create(skyrimPlatformBridgeDefaultMessageSkseModEventName)
+                printConsole(`the handle is: ${handle}`)
+                if (handle) {
+                    printConsole("SENDING...");
+                    (sp as any).ModEvent.pushString(handle, "Hello, world!");
+                    (sp as any).ModEvent.send(handle)
+                    printConsole("SENT")
+                }
             } else {
                 log(`Could not send message, Quest object ${skyrimPlatformBridgeQuestId.toString(16)} not found. Message: ${text}`)
             }
         })
     }
 
-    // getQuestForm(): Form {
-    //     if (questForm) {
-    //         return this.questForm
-    //     }
-    // }
+    public mod(modName: string): PapyrusBridge {
+        return new PapyrusBridge(modName)
+    }
 
     listenForMessages() {
         if (!this.isListening) {
