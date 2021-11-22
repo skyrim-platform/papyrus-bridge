@@ -19,16 +19,17 @@ export class PapyrusBridge {
 
     public listenForMessages() {
         if (!this.isListening) {
-            // once('tick', () => {
-            //     if (! this.messagesContainerFormId) {
-            //         const container = Game.getFormFromFile(skyrimPlatformBridgeMessagesContainerId, skyrimPlatformBridgeMessagesContainerEsp)
-            //         if (container)
-            //             this.messagesContainerFormId = container.getFormID()
-            //     }
-            // })
             on('containerChanged', changeInfo => {
-                printConsole(`Container changed: ${changeInfo.baseObj.getName()}`)
-                // if (changeInfo.newContainer.getFormID() ==)
+                if (!this.messagesContainerFormId) {
+                    const container = Game.getFormFromFile(skyrimPlatformBridgeMessagesContainerId, skyrimPlatformBridgeMessagesContainerEsp)
+                    if (container) {
+                        this.messagesContainerFormId = container.getFormID()
+                    }
+                }
+                if (this.messagesContainerFormId && this.messagesContainerFormId == changeInfo.newContainer.getFormID()) {
+                    const message: PapyrusMessage = { text: changeInfo.baseObj.getName() }
+                    this.messageHandlers.forEach(handler => handler(message))
+                }
             })
         }
     }

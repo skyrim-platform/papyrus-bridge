@@ -8,14 +8,11 @@ SkyrimPlatformBridge function GetAPI() global
 endFunction
 
 function SendMessage(string text) global
-    Debug.MessageBox(GetAPI())
     GetAPI().Send(text)
 endFunction
 
 function Send(string text)
-    Debug.MessageBox("SENDING " + text  + " to Skyrim Platform")
     MessagesContainer.RemoveAllItems()
     SkyrimPlatformBridge_Message0.SetName(text)
     MessagesContainer.AddItem(SkyrimPlatformBridge_Message0)
-    Debug.MessageBox("ADDED ITEM")
 endFunction
