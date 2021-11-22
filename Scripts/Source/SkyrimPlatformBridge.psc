@@ -6,6 +6,7 @@ string property SkyrimPlatformGenericModEventName = "SkyrimPlatformBridge_Generi
 string property SkyrimPlatformBridgeCustomEventSkseModEventNamePrefix = "SkyrimPlatformBridge_Custom_" autoReadonly
 string property SkyrimPlatformBridgeEventMessageDelimiter = "<||>" autoReadonly
 string property SkyrimPlatformBridgeEventMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_EVENT::" autoReadonly
+string property SkyrimPlatformBridgeEventReplyMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_REPLY::" autoReadonly
 
 SkyrimPlatformBridge function GetAPI() global
     return Game.GetFormFromFile(0x800, "SkyrimPlatformBridge.esp") as SkyrimPlatformBridge
@@ -15,8 +16,12 @@ function SendMessage(string text) global
     GetAPI()._SendMessage(text)
 endFunction
 
-function SendEvent(string name, string source, string target, string data, string replyID = "") global
-    GetAPI()._SendEvent(name, source, target, data, replyID)
+function SendEvent(string eventName, string source, string target, string data, string replyID = "") global
+    GetAPI()._SendEvent(eventName, source, target, data, replyID)
+endFunction
+
+function Reply(string eventName, string source, string target, string data, string replyId) global
+    GetAPI()._Reply(eventName, source, target, data, replyID)
 endFunction
 
 function _SendMessage(string text)
@@ -30,14 +35,14 @@ string function GetUniqueReplyId()
 endFunction
 
 ; GET LOCK ON FORK - AND HAVE MANY FORKS!
-function _SendEvent(string name, string source, string target, string data, string replyID = "")
+function _SendEvent(string eventName, string source, string target, string data, string replyID = "")
     if ! replyID
-        replyID = GetUniqueReplyId()
+        replyID = GetUniqueReplyId() ; Change so there's a diff method for sending event with expected reply
     endIf
     MessagesContainer.RemoveAllItems()
     string[] eventParts = new string[6]
     eventParts[0] = SkyrimPlatformBridgeEventMessagePrefix
-    eventParts[1] = name
+    eventParts[1] = eventName
     eventParts[2] = source
     eventParts[3] = target
     eventParts[4] = replyID
@@ -79,4 +84,27 @@ function ListenForEvent(Alias aliasListener, string eventName, string callbackFu
         endIf
     endIf
     aliasListener.RegisterForModEvent("SkyrimPlatformBridge_Custom_" + eventName, callbackFunction)
+endFunction
+
+function _Reply(string eventName, string source, string target, string data, string replyId)
+    MessagesContainer.RemoveAllItems()
+    string[] eventParts = new string[6]
+    eventParts[0] = SkyrimPlatformBridgeEventReplyMessagePrefix
+    eventParts[1] = eventName
+    eventParts[2] = source
+    eventParts[3] = target
+    eventParts[4] = replyID
+    eventParts[5] = data
+    string eventText = ""
+    int i = 0
+    while i < eventParts.Length
+        if i == 0
+            eventText += eventParts[i]
+        else
+            eventText += SkyrimPlatformBridgeEventMessageDelimiter + eventParts[i]
+        endIf
+        i += 1
+    endWhile
+    SkyrimPlatformBridge_Message0.SetName(eventText)
+    MessagesContainer.AddItem(SkyrimPlatformBridge_Message0)
 endFunction

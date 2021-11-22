@@ -8,6 +8,7 @@ const skyrimPlatformBridgeDefaultMessageSkseModEventName = 'SkyrimPlatformBridge
 const skyrimPlatformBridgeCustomEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_Custom_'
 const skyrimPlatformBridgeEventMessageDelimiter = '<||>'
 const skyrimPlatformBridgeEventMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_EVENT::'
+const skyrimPlatformBridgeEventReplyMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_REPLY::'
 
 export interface PapyrusEvent {
     name: string,
@@ -32,8 +33,10 @@ export class PapyrusBridge {
     questFormId = 0
     // questForm: Form | null = null // TODO
     isListening = false
+
     messageHandlers = new Array<PapyrusMessageHandler>()
     eventHandlers = new Array<(event: PapyrusEvent) => void>()
+    replyHandlers = new Map<string, ((event: PapyrusEvent) => void)>()
 
     constructor(modName: string = '') {
         this.modName = modName
@@ -49,15 +52,15 @@ export class PapyrusBridge {
         this.eventHandlers.push(handler)
     }
 
-    public sendEvent(event: PapyrusEvent) {
+    public sendEvent(event: PapyrusEvent, onReply: (((event: PapyrusEvent) => void) | undefined) = undefined) {
         this.sendModEvent(`${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`, (modEvent, handle) => {
-            if (!event.replyID)
-                event.replyID = this.GetUniqueReplyId()
+            const replyID = onReply ? this.GetUniqueReplyId() : ''
             modEvent.pushString(handle, event.name)
             modEvent.pushString(handle, event.source)
             modEvent.pushString(handle, event.target)
             modEvent.pushString(handle, event.data)
-            modEvent.pushString(handle, event.replyID)
+            modEvent.pushString(handle, replyID)
+            if (onReply) this.replyHandlers.set(replyID, onReply)
         })
     }
 
@@ -102,6 +105,10 @@ export class PapyrusBridge {
         return message.startsWith(skyrimPlatformBridgeEventMessagePrefix)
     }
 
+    public isEventReply(message: string): boolean {
+        return message.startsWith(skyrimPlatformBridgeEventReplyMessagePrefix)
+    }
+
     public parseEventMessage(message: string): PapyrusEvent | undefined {
         const eventParts = message.split(skyrimPlatformBridgeEventMessageDelimiter)
         if (eventParts.length < 4)
@@ -124,7 +131,7 @@ export class PapyrusBridge {
         if (!this.isListening) {
             this.isListening = true
             on('containerChanged', changeInfo => {
-                if (changeInfo.newContainer) {
+                if (changeInfo.newContainer) { // new or old
                     if (!this.messagesContainerFormId) {
                         const container = Game.getFormFromFile(skyrimPlatformBridgeMessagesContainerId, skyrimPlatformBridgeEsp)
                         if (container) {
@@ -141,6 +148,16 @@ export class PapyrusBridge {
                                         handler.handler(message)
                                 })
                                 this.eventHandlers.forEach(handler => handler(event))
+                            }
+                        } else if (this.isEventReply(message)) {
+                            const reply = this.parseEventMessage(message)
+                            if (reply && reply.replyID) {
+                                if (this.replyHandlers.has(reply.replyID)) {
+                                    const replyHandler = this.replyHandlers.get(reply.replyID)
+                                    this.replyHandlers.delete(reply.replyID)
+                                    if (replyHandler)
+                                        replyHandler(reply)
+                                }
                             }
                         } else {
                             this.messageHandlers.forEach(handler => handler.handler(message))
