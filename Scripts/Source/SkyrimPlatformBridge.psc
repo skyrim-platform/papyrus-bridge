@@ -3,6 +3,7 @@ scriptName SkyrimPlatformBridge extends Quest
 ObjectReference property MessagesContainer auto
 Form property SkyrimPlatformBridge_Message0 auto
 string property SkyrimPlatformGenericModEventName = "SkyrimPlatformBridge_Generic" autoReadonly
+string property SkyrimPlatformBridgeCustomEventSkseModEventNamePrefix = "SkyrimPlatformBridge_Custom_" autoReadonly
 string property SkyrimPlatformBridgeEventMessageDelimiter = "<||>" autoReadonly
 string property SkyrimPlatformBridgeEventMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_EVENT::" autoReadonly
 
@@ -14,8 +15,8 @@ function SendMessage(string text) global
     GetAPI()._SendMessage(text)
 endFunction
 
-function SendEvent(string name, string source, string target, string data, string replyId = "") global
-    GetAPI()._SendEvent(name, source, target, data, replyId)
+function SendEvent(string name, string source, string target, string data, string replyID = "") global
+    GetAPI()._SendEvent(name, source, target, data, replyID)
 endFunction
 
 function _SendMessage(string text)
@@ -29,9 +30,9 @@ string function GetUniqueReplyId()
 endFunction
 
 ; GET LOCK ON FORK - AND HAVE MANY FORKS!
-function _SendEvent(string name, string source, string target, string data, string replyId = "")
-    if ! replyId
-        replyId = GetUniqueReplyId()
+function _SendEvent(string name, string source, string target, string data, string replyID = "")
+    if ! replyID
+        replyID = GetUniqueReplyId()
     endIf
     MessagesContainer.RemoveAllItems()
     string[] eventParts = new string[6]
@@ -39,7 +40,7 @@ function _SendEvent(string name, string source, string target, string data, stri
     eventParts[1] = name
     eventParts[2] = source
     eventParts[3] = target
-    eventParts[4] = replyId
+    eventParts[4] = replyID
     eventParts[5] = data
     string eventText = ""
     int i = 0
@@ -55,6 +56,27 @@ function _SendEvent(string name, string source, string target, string data, stri
     MessagesContainer.AddItem(SkyrimPlatformBridge_Message0)
 endFunction
 
+; TODO ListenForModMessage()
+
+; TODO ListenForModEvent()
+
 function ListenForMessage(Alias aliasListener) global
     aliasListener.RegisterForModEvent("SkyrimPlatformBridge_Generic", "OnSkyrimPlatformMessage")
+endFunction
+
+function ListenForEvent(Alias aliasListener, string eventName, string callbackFunction = "") global
+    if ! callbackFunction
+        string[] eventNameParts = StringUtil.Split(eventName, " ")
+        if eventNameParts.Length > 1
+            callbackFunction = "On"
+            int i = 0
+            while i < eventNameParts.Length
+                callbackFunction += eventNameParts[i]
+                i += 1
+            endWhile
+        else
+            callbackFunction = "On" + eventName
+        endIf
+    endIf
+    aliasListener.RegisterForModEvent("SkyrimPlatformBridge_Custom_" + eventName, callbackFunction)
 endFunction

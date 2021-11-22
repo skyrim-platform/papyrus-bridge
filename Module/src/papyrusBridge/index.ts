@@ -5,6 +5,7 @@ const skyrimPlatformBridgeEsp = 'SkyrimPlatformBridge.esp'
 const skyrimPlatformBridgeMessagesContainerId = 0xd66
 const skyrimPlatformBridgeQuestId = 0x800
 const skyrimPlatformBridgeDefaultMessageSkseModEventName = 'SkyrimPlatformBridge_Generic'
+const skyrimPlatformBridgeCustomEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_Custom_'
 const skyrimPlatformBridgeEventMessageDelimiter = '<||>'
 const skyrimPlatformBridgeEventMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_EVENT::'
 
@@ -13,7 +14,7 @@ export interface PapyrusEvent {
     source: string,
     target: string,
     data: any,
-    replyID: string
+    replyID?: string
 }
 
 interface PapyrusMessageHandler {
@@ -48,7 +49,29 @@ export class PapyrusBridge {
         this.eventHandlers.push(handler)
     }
 
+    public sendEvent(event: PapyrusEvent) {
+        this.sendModEvent(`${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`, (modEvent, handle) => {
+            if (!event.replyID)
+                event.replyID = this.GetUniqueReplyId()
+            modEvent.pushString(handle, event.name)
+            modEvent.pushString(handle, event.source)
+            modEvent.pushString(handle, event.target)
+            modEvent.pushString(handle, event.data)
+            modEvent.pushString(handle, event.replyID)
+        })
+    }
+
     public sendMessage(text: string) {
+        this.sendModEvent(skyrimPlatformBridgeDefaultMessageSkseModEventName, (modEvent, handle) => {
+            modEvent.pushString(handle, text)
+        })
+    }
+
+    public GetUniqueReplyId() {
+        return `${Math.random()}_${Math.random()}`
+    }
+
+    sendModEvent(skseModEventName: string, parameterBuilder: (modEvent: any, handle: Number) => void) {
         once('update', () => {
             let quest: Form | null = null
             if (!this.questFormId) {
@@ -63,15 +86,14 @@ export class PapyrusBridge {
             }
             if (quest) {
                 const handle: any = (sp as any).ModEvent.create(skyrimPlatformBridgeDefaultMessageSkseModEventName)
-                printConsole(`the handle is: ${handle}`)
                 if (handle) {
-                    printConsole("SENDING...");
-                    (sp as any).ModEvent.pushString(handle, "Hello, world!");
-                    (sp as any).ModEvent.send(handle)
-                    printConsole("SENT")
+                    const modEvent = (sp as any).ModEvent
+                    const handle = modEvent.Create(skseModEventName)
+                    parameterBuilder(modEvent, handle)
+                    modEvent.send(handle)
                 }
             } else {
-                log(`Could not send message, Quest object ${skyrimPlatformBridgeQuestId.toString(16)} not found. Message: ${text}`)
+                log(`Could not send message, Quest object ${skyrimPlatformBridgeQuestId.toString(16)} not found.`)
             }
         })
     }
