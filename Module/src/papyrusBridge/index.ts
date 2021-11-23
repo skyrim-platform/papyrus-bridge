@@ -146,15 +146,17 @@ export class PapyrusBridge {
         if (!this.isListening) {
             this.isListening = true
             on('containerChanged', changeInfo => {
-                if (changeInfo.newContainer) { // new or old
+                const container = changeInfo.newContainer || changeInfo.oldContainer
+                if (container) {
                     if (!this.messagesContainerFormId) {
-                        const container = Game.getFormFromFile(skyrimPlatformBridgeMessagesContainerId, skyrimPlatformBridgeEsp)
-                        if (container) {
-                            this.messagesContainerFormId = container.getFormID()
+                        const messagesContainer = Game.getFormFromFile(skyrimPlatformBridgeMessagesContainerId, skyrimPlatformBridgeEsp)
+                        if (messagesContainer) {
+                            this.messagesContainerFormId = messagesContainer.getFormID()
                         }
                     }
-                    if (this.messagesContainerFormId && this.messagesContainerFormId == changeInfo.newContainer.getFormID()) {
+                    if (this.messagesContainerFormId && this.messagesContainerFormId == container.getFormID()) {
                         const message = changeInfo.baseObj.getName()
+                        printConsole(changeInfo.baseObj.getFormID().toString(16))
                         if (this.isEventMessage(message)) {
                             const event = this.parseEventMessage(message)
                             if (event) {
