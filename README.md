@@ -2,7 +2,7 @@
 
 ## Monday Night
 
-- [ ] await
+- [x] await
 - [ ] Lock da Forks!
 - [ ] Mod 'contexts'
 - [ ] blocking reply
