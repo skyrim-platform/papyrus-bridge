@@ -37,6 +37,7 @@ export class PapyrusBridge {
     messageHandlers = new Array<PapyrusMessageHandler>()
     eventHandlers = new Array<(event: PapyrusEvent) => void>()
     replyHandlers = new Map<string, ((event: PapyrusEvent) => void)>()
+    replyPromises = new Map<string, Promise<PapyrusEvent>>()
 
     constructor(modName: string = '') {
         this.modName = modName
@@ -61,6 +62,20 @@ export class PapyrusBridge {
             modEvent.pushString(handle, event.data)
             modEvent.pushString(handle, replyID)
             if (onReply) this.replyHandlers.set(replyID, onReply)
+        })
+    }
+
+    public async sendEventAsync(event: PapyrusEvent): Promise<PapyrusEvent> {
+        return new Promise(resolve => {
+            this.sendModEvent(`${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`, (modEvent, handle) => {
+                const replyID = this.GetUniqueReplyId()
+                modEvent.pushString(handle, event.name)
+                modEvent.pushString(handle, event.source)
+                modEvent.pushString(handle, event.target)
+                modEvent.pushString(handle, event.data)
+                modEvent.pushString(handle, replyID)
+                this.replyHandlers.set(replyID, resolve)
+            })
         })
     }
 
