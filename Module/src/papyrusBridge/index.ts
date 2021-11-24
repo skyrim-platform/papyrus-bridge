@@ -13,9 +13,9 @@ const skyrimPlatformBridgeEventReplyMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_RE
 
 export interface PapyrusEvent {
     name: string,
-    source: string,
-    target: string,
-    data: any,
+    source?: string,
+    target?: string,
+    data?: any,
     replyID?: string
 }
 
@@ -29,7 +29,7 @@ function log(...args: any[]) {
 }
 
 export class PapyrusBridge {
-    modName = ''
+    modName?= ''
     messagesContainerFormId = 0
     questFormId = 0
     // questForm: Form | null = null // TODO
@@ -59,14 +59,14 @@ export class PapyrusBridge {
     }
 
     public sendEvent(event: PapyrusEvent, onReply: (((event: PapyrusEvent) => void) | undefined) = undefined) {
-        const skseModEventName = this.modName ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${this.modName}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`
-        Debug.messageBox(`Sending mod event: '${skseModEventName}'`)
+        const target = event.target ?? this.modName
+        const skseModEventName = target ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${target}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`
         this.sendModEvent(skseModEventName, (modEvent, handle) => {
             const replyID = onReply ? this.GetUniqueReplyId() : ''
             modEvent.pushString(handle, event.name)
-            modEvent.pushString(handle, event.source)
-            modEvent.pushString(handle, event.target)
-            modEvent.pushString(handle, event.data)
+            modEvent.pushString(handle, event.source ?? this.modName ?? '')
+            modEvent.pushString(handle, target)
+            modEvent.pushString(handle, event.data ?? '')
             modEvent.pushString(handle, replyID)
             if (onReply) this.replyHandlers.set(replyID, onReply)
         })

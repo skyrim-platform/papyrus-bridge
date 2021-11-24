@@ -4,10 +4,11 @@
 
 - [x] await
 - [x] Lock da Forks!
-- [ ] Mod 'contexts' -> `getMod`
-    - [ ] Send Event from Papyrus to Skyrim Platform (but make sure that ONLY the correct target mod gets the event)
-    - [ ] Send Event from Skyrim Platform to Papyrus (but!)
+- [x] Mod 'contexts' -> `getMod`
+    - [x] Send Event from Papyrus to Skyrim Platform (but make sure that ONLY the correct target mod gets the event)
+    - [x] Send Event from Skyrim Platform to Papyrus (but!)
 - [ ] blocking reply
+- [ ] batch all TS messages sent to a mod until the mod reports in that it's READY
 
 ## DONE
 
