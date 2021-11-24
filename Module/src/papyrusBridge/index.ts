@@ -166,8 +166,8 @@ export class PapyrusBridge {
                         printConsole(changeInfo.baseObj.getFormID().toString(16))
                         if (this.isEventMessage(message)) {
                             const event = this.parseEventMessage(message)
-                            if (event) {
-                                Debug.messageBox(`EVENT ${event}`)
+                            if (event && ((!this.modName) || this.modName == event.target)) {
+                                // Debug.messageBox(`Skyrim Platform Received Event ${JSON.stringify(event)}`)
                                 this.messageHandlers.forEach(handler => {
                                     if (handler.receiveEvents)
                                         handler.handler(message)
@@ -176,7 +176,7 @@ export class PapyrusBridge {
                             }
                         } else if (this.isEventReply(message)) {
                             const reply = this.parseEventMessage(message)
-                            if (reply && reply.replyID) {
+                            if (reply && reply.replyID && ((!this.modName) || this.modName == reply.target)) {
                                 if (this.replyHandlers.has(reply.replyID)) {
                                     const replyHandler = this.replyHandlers.get(reply.replyID)
                                     this.replyHandlers.delete(reply.replyID)

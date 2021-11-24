@@ -4,8 +4,9 @@
 
 - [x] await
 - [x] Lock da Forks!
-- [ ] Mod 'contexts' -> `getMod` -> `channel` -> `context`
-    - Event Channel?
+- [ ] Mod 'contexts' -> `getMod`
+    - [ ] Send Event from Papyrus to Skyrim Platform (but make sure that ONLY the correct target mod gets the event)
+    - [ ] Send Event from Skyrim Platform to Papyrus (but!)
 - [ ] blocking reply
 
 ## DONE

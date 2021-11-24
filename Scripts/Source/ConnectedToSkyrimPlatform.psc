@@ -6,9 +6,7 @@ SkyrimPlatformBridge _bridgeAPI
 event OnInit()
     OnSetup()
     _bridgeAPI = SkyrimPlatformBridge.GetPrivateAPI()
-    Debug.MessageBox("Listening for 'SkyrimPlatformBridge_ModEvent_" + ModName + "'")
     RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ModName, "OnSkyrimPlatformEvent")
-    Debug.MessageBox("Listening for events to " + ModName)
     SendModEvent("SkyrimPlatform_RequestConnection")
 endEvent
 
@@ -76,7 +74,14 @@ endProperty
 event OnSetup()
 endEvent
 
-function SendEvent(string eventName, string data, string target = "", string source = "")
+function SendEvent(string eventName, string data = "", string target = "", string source = "")
+    if ! target
+        target = ModName
+    endIf
+    if ! source
+        source = ModName
+    endIf
+    _bridgeAPI.SendEventAPI(eventName, source, target, data)
 endFunction
 
 function GetData(string dataName, string parameter = "", string target = "", string source = "")
@@ -89,11 +94,9 @@ event OnConnected()
 endEvent
 
 event OnSkyrimPlatformEvent(string eventName, string source, string target, string data, string replyID)
-    Debug.MessageBox("Got an event! " + eventName)
     if eventName == "SkyrimPlatform_Connected"
         OnConnected()
     else
-        Debug.MessageBox("Calling OnEvent...")
         OnEvent(eventName, source, data, replyID)
     endIf
 endEvent
