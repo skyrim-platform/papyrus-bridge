@@ -4,8 +4,9 @@ import * as sp from 'skyrimPlatform'
 const skyrimPlatformBridgeEsp = 'SkyrimPlatformBridge.esp'
 const skyrimPlatformBridgeMessagesContainerId = 0xd66
 const skyrimPlatformBridgeQuestId = 0x800
-const skyrimPlatformBridgeDefaultMessageSkseModEventName = 'SkyrimPlatformBridge_Generic'
-const skyrimPlatformBridgeCustomEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_Custom_'
+const skyrimPlatformBridgeDefaultMessageSkseModEventName = 'DEPRECATE_ME'
+const skyrimPlatformBridgeModEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_ModEvent_'
+const skyrimPlatformBridgeCustomEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_Event_'
 const skyrimPlatformBridgeEventMessageDelimiter = '<||>'
 const skyrimPlatformBridgeEventMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_EVENT::'
 const skyrimPlatformBridgeEventReplyMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_REPLY::'
@@ -43,6 +44,10 @@ export class PapyrusBridge {
         this.modName = modName
     }
 
+    public getMod(modName: string) {
+        return new PapyrusBridge(modName)
+    }
+
     public onMessage(handler: (message: string) => void, receiveEvents = false) {
         this.listenForMessages()
         this.messageHandlers.push({ handler, receiveEvents })
@@ -54,7 +59,9 @@ export class PapyrusBridge {
     }
 
     public sendEvent(event: PapyrusEvent, onReply: (((event: PapyrusEvent) => void) | undefined) = undefined) {
-        this.sendModEvent(`${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`, (modEvent, handle) => {
+        const skseModEventName = this.modName ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${this.modName}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`
+        Debug.messageBox(`Sending mod event: '${skseModEventName}'`)
+        this.sendModEvent(skseModEventName, (modEvent, handle) => {
             const replyID = onReply ? this.GetUniqueReplyId() : ''
             modEvent.pushString(handle, event.name)
             modEvent.pushString(handle, event.source)
@@ -160,6 +167,7 @@ export class PapyrusBridge {
                         if (this.isEventMessage(message)) {
                             const event = this.parseEventMessage(message)
                             if (event) {
+                                Debug.messageBox(`EVENT ${event}`)
                                 this.messageHandlers.forEach(handler => {
                                     if (handler.receiveEvents)
                                         handler.handler(message)

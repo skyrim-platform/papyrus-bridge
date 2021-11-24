@@ -74,13 +74,13 @@ Form property SkyrimPlatformBridge_Message66 auto
 Form property SkyrimPlatformBridge_Message67 auto
 Form property SkyrimPlatformBridge_Message68 auto
 Form property SkyrimPlatformBridge_Message69 auto
-string property SkyrimPlatformGenericModEventName = "SkyrimPlatformBridge_Generic" autoReadonly
-string property SkyrimPlatformBridgeCustomEventSkseModEventNamePrefix = "SkyrimPlatformBridge_Custom_" autoReadonly
+string property SkyrimPlatformGenericModEventName = "DEPRECATE_ME" autoReadonly
+string property SkyrimPlatformBridgeCustomEventSkseModEventNamePrefix = "SkyrimPlatformBridge_Event_" autoReadonly
 string property SkyrimPlatformBridgeEventMessageDelimiter = "<||>" autoReadonly
 string property SkyrimPlatformBridgeEventMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_EVENT::" autoReadonly
 string property SkyrimPlatformBridgeEventReplyMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_REPLY::" autoReadonly
 
-SkyrimPlatformBridge function GetAPI() global
+SkyrimPlatformBridge function GetPrivateAPI() global
     return Game.GetFormFromFile(0x800, "SkyrimPlatformBridge.esp") as SkyrimPlatformBridge
 endFunction
 
@@ -159,20 +159,44 @@ event OnInit()
     Messages[68] = SkyrimPlatformBridge_Message69
 endEvent
 
-function SendMessage(string text) global
-    GetAPI()._SendMessage(text)
-endFunction
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; API Public Global Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 function SendEvent(string eventName, string source, string target, string data, string replyID = "") global
-    GetAPI()._SendEvent(eventName, source, target, data, replyID)
+    GetPrivateAPI().SendEventAPI(eventName, source, target, data, replyID)
 endFunction
 
 function Reply(string eventName, string source, string target, string data, string replyId) global
-    GetAPI()._Reply(eventName, source, target, data, replyID)
+    GetPrivateAPI().ReplyAPI(eventName, source, target, data, replyID)
 endFunction
 
-function _SendMessage(string text)
-    int messageIndex = GetAndLockNextAvailableMessageIndex()
+function ListenForEvent(Alias aliasListener, string eventName, string callbackFunction = "") global
+    if ! callbackFunction
+        string[] eventNameParts = StringUtil.Split(eventName, " ")
+        if eventNameParts.Length > 1
+            callbackFunction = "On"
+            int i = 0
+            while i < eventNameParts.Length
+                callbackFunction += eventNameParts[i]
+                i += 1
+            endWhile
+        else
+            callbackFunction = "On" + eventName
+        endIf
+    endIf
+    aliasListener.RegisterForModEvent("SkyrimPlatformBridge_Event_" + eventName, callbackFunction)
+endFunction
+
+; TODO ListenForModMessage()
+; TODO ListenForModEvent()
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; API Instance Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+function SendRawMessageAPI(string text)
+    int messageIndex = _getAndLockNextAvailableMessageIndex()
     bool messageInContainer = MessageIsInMessagesContainer[messageIndex]
     Form messageEnvelope = Messages[messageIndex]
     messageEnvelope.SetName(text)
@@ -183,59 +207,12 @@ function _SendMessage(string text)
         MessagesContainer.AddItem(messageEnvelope)
         MessageIsInMessagesContainer[messageIndex] = true
     endIf
-    UnlockMessage(messageIndex)
+    _unlockMessage(messageIndex)
 endFunction
 
-function UnlockMessage(int messageIndex)
-    MessageLocks[messageIndex] = 0
-endFunction
-
-int function GetAndLockNextAvailableMessageIndex()
-    float messageLock = Utility.RandomFloat(10000, 10000000000)
-    int messageIndex = TryLockNextAvailableMessageIndex(messageLock)
-    while messageIndex == -1
-        messageIndex = TryLockNextAvailableMessageIndex(messageLock)
-    endWhile
-    return messageIndex
-endFunction
-
-int function IncrementOrFloorNextMessageIndex()
-    NextMessageIndex += 1
-    if NextMessageIndex >= 69
-        NextMessageIndex = 0
-    endIf
-    return NextMessageIndex
-endFunction
-
-int function TryLockNextAvailableMessageIndex(float lock)
-    int messageIndex = IncrementOrFloorNextMessageIndex()
-    while MessageLocks[messageIndex]
-        messageIndex = IncrementOrFloorNextMessageIndex() ; Increment until we get an UNLOCKED ont
-    endWhile
-    if ! MessageLocks[messageIndex] ; Make sure that it is STILL unlocked
-        MessageLocks[messageIndex] = lock ; Try to lock!
-        if MessageLocks[messageIndex] == lock ; We did it! Or did we? Check one more time...
-            if MessageLocks[messageIndex] == lock ; We did it! Or did we? Check one more time...
-                return messageIndex
-            else
-                return -1
-            endIf
-        else
-            return -1
-        endIf
-    else
-        return -1
-    endIf
-endFunction
-
-string function GetUniqueReplyId()
-    return Utility.RandomFloat(0, 100000000) + "_" + Utility.RandomFloat(0, 100000000)
-endFunction
-
-; GET LOCK ON FORK - AND HAVE MANY FORKS!
-function _SendEvent(string eventName, string source, string target, string data, string replyID = "")
+function SendEventAPI(string eventName, string source, string target, string data, string replyID = "")
     if ! replyID
-        replyID = GetUniqueReplyId() ; Change so there's a diff method for sending event with expected reply
+        replyID = _getUniqueReplyId() ; Change so there's a diff method for sending event with expected reply
     endIf
     string[] eventParts = new string[6]
     eventParts[0] = SkyrimPlatformBridgeEventMessagePrefix
@@ -254,35 +231,10 @@ function _SendEvent(string eventName, string source, string target, string data,
         endIf
         i += 1
     endWhile
-    _SendMessage(eventText)
+    SendRawMessageAPI(eventText)
 endFunction
 
-; TODO ListenForModMessage()
-
-; TODO ListenForModEvent()
-
-function ListenForMessage(Alias aliasListener) global
-    aliasListener.RegisterForModEvent("SkyrimPlatformBridge_Generic", "OnSkyrimPlatformMessage")
-endFunction
-
-function ListenForEvent(Alias aliasListener, string eventName, string callbackFunction = "") global
-    if ! callbackFunction
-        string[] eventNameParts = StringUtil.Split(eventName, " ")
-        if eventNameParts.Length > 1
-            callbackFunction = "On"
-            int i = 0
-            while i < eventNameParts.Length
-                callbackFunction += eventNameParts[i]
-                i += 1
-            endWhile
-        else
-            callbackFunction = "On" + eventName
-        endIf
-    endIf
-    aliasListener.RegisterForModEvent("SkyrimPlatformBridge_Custom_" + eventName, callbackFunction)
-endFunction
-
-function _Reply(string eventName, string source, string target, string data, string replyId)
+function ReplyAPI(string eventName, string source, string target, string data, string replyId)
     string[] eventParts = new string[6]
     eventParts[0] = SkyrimPlatformBridgeEventReplyMessagePrefix
     eventParts[1] = eventName
@@ -300,5 +252,55 @@ function _Reply(string eventName, string source, string target, string data, str
         endIf
         i += 1
     endWhile
-    _SendMessage(eventText)
+    SendRawMessageAPI(eventText)
+endFunction
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Private Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+function _unlockMessage(int messageIndex)
+    MessageLocks[messageIndex] = 0
+endFunction
+
+int function _getAndLockNextAvailableMessageIndex()
+    float messageLock = Utility.RandomFloat(10000, 10000000000)
+    int messageIndex = _tryLockNextAvailableMessageIndex(messageLock)
+    while messageIndex == -1
+        messageIndex = _tryLockNextAvailableMessageIndex(messageLock)
+    endWhile
+    return messageIndex
+endFunction
+
+int function _incrementOrFloorNextMessageIndex()
+    NextMessageIndex += 1
+    if NextMessageIndex >= 69
+        NextMessageIndex = 0
+    endIf
+    return NextMessageIndex
+endFunction
+
+int function _tryLockNextAvailableMessageIndex(float lock)
+    int messageIndex = _incrementOrFloorNextMessageIndex()
+    while MessageLocks[messageIndex]
+        messageIndex = _incrementOrFloorNextMessageIndex() ; Increment until we get an UNLOCKED ont
+    endWhile
+    if ! MessageLocks[messageIndex] ; Make sure that it is STILL unlocked
+        MessageLocks[messageIndex] = lock ; Try to lock!
+        if MessageLocks[messageIndex] == lock ; We did it! Or did we? Check one more time...
+            if MessageLocks[messageIndex] == lock ; We did it! Or did we? Check one more time...
+                return messageIndex
+            else
+                return -1
+            endIf
+        else
+            return -1
+        endIf
+    else
+        return -1
+    endIf
+endFunction
+
+string function _getUniqueReplyId()
+    return Utility.RandomFloat(0, 100000000) + "_" + Utility.RandomFloat(0, 100000000)
 endFunction

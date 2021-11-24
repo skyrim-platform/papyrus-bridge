@@ -3,8 +3,9 @@
 ## Monday Night
 
 - [x] await
-- [ ] Lock da Forks!
-- [ ] Mod 'contexts'
+- [x] Lock da Forks!
+- [ ] Mod 'contexts' -> `getMod` -> `channel` -> `context`
+    - Event Channel?
 - [ ] blocking reply
 
 ## DONE
@@ -14,10 +15,10 @@
 
 ## TODO
 
-- [ ] Lock 69 Forks
+- [x] Lock 69 Forks
 - Reply (sync and async)
-    - [ ] Can reply from Papyrus to SP
-        - [ ] Can use await
+    - [x] Can reply from Papyrus to SP
+        - [x] Can use await
         - [x] Can use callback
     - [ ] Can reploy from SP to Papyrus
         - [ ] Blocking
