@@ -9,14 +9,36 @@ const skyrimPlatformBridgeModEventSkseModEventNamePrefix = 'SkyrimPlatformBridge
 const skyrimPlatformBridgeCustomEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_Event_'
 const skyrimPlatformBridgeEventMessageDelimiter = '<||>'
 const skyrimPlatformBridgeEventMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_EVENT::'
-const skyrimPlatformBridgeEventReplyMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_REPLY::'
+const skyrimPlatformBridgeRequestMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_REQUEST::'
+const skyrimPlatformBridgeResponseMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_RESPONSE::'
 
 export interface PapyrusEvent {
-    name: string,
+    eventName: string,
     source?: string,
     target?: string,
-    data?: any,
-    replyID?: string
+    data?: any
+}
+
+export interface PapyrusResponse {
+    query: string,
+    source?: string,
+    target?: string,
+    data?: any
+}
+
+export interface PapyrusRequest {
+    query: string,
+    source?: string,
+    target?: string,
+    parameters?: any
+}
+
+interface PapyrusRequestWithReplyID extends PapyrusRequest {
+    replyID: string
+}
+
+interface PapyrusResponseWithReplyID extends PapyrusResponse {
+    replyID: string
 }
 
 interface PapyrusMessageHandler {
@@ -37,8 +59,7 @@ export class PapyrusBridge {
 
     messageHandlers = new Array<PapyrusMessageHandler>()
     eventHandlers = new Array<(event: PapyrusEvent) => void>()
-    replyHandlers = new Map<string, ((event: PapyrusEvent) => void)>()
-    replyPromises = new Map<string, Promise<PapyrusEvent>>()
+    replyHandlers = new Map<string, ((event: PapyrusResponse) => void)>()
 
     constructor(modName: string = '') {
         this.modName = modName
@@ -58,30 +79,33 @@ export class PapyrusBridge {
         this.eventHandlers.push(handler)
     }
 
-    public sendEvent(event: PapyrusEvent, onReply: (((event: PapyrusEvent) => void) | undefined) = undefined) {
+    public send(event: PapyrusEvent) {
         const target = event.target ?? this.modName
-        const skseModEventName = target ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${target}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`
+        const skseModEventName = target ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${target}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.eventName}`
         this.sendModEvent(skseModEventName, (modEvent, handle) => {
-            const replyID = onReply ? this.GetUniqueReplyId() : ''
-            modEvent.pushString(handle, event.name)
+            modEvent.pushString(handle, event.eventName)
             modEvent.pushString(handle, event.source ?? this.modName ?? '')
-            modEvent.pushString(handle, target)
+            modEvent.pushString(handle, target ?? '')
             modEvent.pushString(handle, event.data ?? '')
-            modEvent.pushString(handle, replyID)
-            if (onReply) this.replyHandlers.set(replyID, onReply)
+            modEvent.pushString(handle, '') // No reply ID
         })
     }
 
-    public async sendEventAsync(event: PapyrusEvent): Promise<PapyrusEvent> {
-        return new Promise(resolve => {
-            this.sendModEvent(`${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.name}`, (modEvent, handle) => {
-                const replyID = this.GetUniqueReplyId()
-                modEvent.pushString(handle, event.name)
-                modEvent.pushString(handle, event.source)
-                modEvent.pushString(handle, event.target)
-                modEvent.pushString(handle, event.data)
+    public async request(event: PapyrusRequest): Promise<PapyrusResponse> {
+        return new Promise<PapyrusResponse>(resolve => {
+            const target = event.target ?? this.modName
+            const skseModEventName = target ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${target}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.query}`
+            let parameterText = ''
+            if (event.parameters)
+                parameterText = (typeof event.parameters === 'string') ? event.parameters.toString() : JSON.stringify(event.parameters)
+            const replyID = this.GetUniqueReplyId()
+            this.replyHandlers.set(replyID, resolve)
+            this.sendModEvent(skseModEventName, (modEvent, handle) => {
+                modEvent.pushString(handle, event.query)
+                modEvent.pushString(handle, event.source ?? this.modName ?? '')
+                modEvent.pushString(handle, target ?? '')
+                modEvent.pushString(handle, parameterText)
                 modEvent.pushString(handle, replyID)
-                this.replyHandlers.set(replyID, resolve)
             })
         })
     }
@@ -127,8 +151,12 @@ export class PapyrusBridge {
         return message.startsWith(skyrimPlatformBridgeEventMessagePrefix)
     }
 
-    public isEventReply(message: string): boolean {
-        return message.startsWith(skyrimPlatformBridgeEventReplyMessagePrefix)
+    public isRequestMessage(message: string): boolean {
+        return message.startsWith(skyrimPlatformBridgeRequestMessagePrefix)
+    }
+
+    public isResponseMessage(message: string): boolean {
+        return message.startsWith(skyrimPlatformBridgeResponseMessagePrefix)
     }
 
     public parseEventMessage(message: string): PapyrusEvent | undefined {
@@ -136,7 +164,32 @@ export class PapyrusBridge {
         if (eventParts.length < 4)
             return
         return {
-            name: eventParts[1],
+            eventName: eventParts[1],
+            source: eventParts[2],
+            target: eventParts[3],
+            data: eventParts.slice(5).join('||')
+        }
+    }
+
+    public parseRequestMessage(message: string): PapyrusRequestWithReplyID | undefined {
+        const eventParts = message.split(skyrimPlatformBridgeRequestMessagePrefix)
+        if (eventParts.length < 4)
+            return
+        return {
+            query: eventParts[1],
+            source: eventParts[2],
+            target: eventParts[3],
+            replyID: eventParts[4],
+            parameters: eventParts.slice(5).join('||')
+        }
+    }
+
+    public parseResponseMessage(message: string): PapyrusResponseWithReplyID | undefined {
+        const eventParts = message.split(skyrimPlatformBridgeResponseMessagePrefix)
+        if (eventParts.length < 4)
+            return
+        return {
+            query: eventParts[1],
             source: eventParts[2],
             target: eventParts[3],
             replyID: eventParts[4],
@@ -144,10 +197,41 @@ export class PapyrusBridge {
         }
     }
 
-    // TODO
-    // public mod(modName: string): PapyrusBridge {
-    //     return new PapyrusBridge(modName)
-    // }
+    setMessagesContainerFormId() {
+        if (!this.messagesContainerFormId) {
+            const messagesContainer = Game.getFormFromFile(skyrimPlatformBridgeMessagesContainerId, skyrimPlatformBridgeEsp)
+            if (messagesContainer) {
+                this.messagesContainerFormId = messagesContainer.getFormID()
+            }
+        }
+    }
+
+    handleIncomingEvent(message: string) {
+        const event = this.parseEventMessage(message)
+        if (event && ((!this.modName) || this.modName == event.target)) {
+            this.messageHandlers.forEach(handler => {
+                if (handler.receiveEvents)
+                    handler.handler(message)
+            })
+            this.eventHandlers.forEach(handler => handler(event))
+        }
+    }
+
+    handleIncomingRequest(message: string) {
+        Debug.messageBox("TODO HANDLE REQUEST")
+    }
+
+    handleIncomingResponse(message: string) {
+        const reply = this.parseResponseMessage(message)
+        if (reply && reply.replyID && ((!this.modName) || this.modName == reply.target)) {
+            if (this.replyHandlers.has(reply.replyID)) {
+                const replyHandler = this.replyHandlers.get(reply.replyID)
+                this.replyHandlers.delete(reply.replyID)
+                if (replyHandler)
+                    replyHandler(reply)
+            }
+        }
+    }
 
     listenForMessages() {
         if (!this.isListening) {
@@ -155,35 +239,15 @@ export class PapyrusBridge {
             on('containerChanged', changeInfo => {
                 const container = changeInfo.newContainer || changeInfo.oldContainer
                 if (container) {
-                    if (!this.messagesContainerFormId) {
-                        const messagesContainer = Game.getFormFromFile(skyrimPlatformBridgeMessagesContainerId, skyrimPlatformBridgeEsp)
-                        if (messagesContainer) {
-                            this.messagesContainerFormId = messagesContainer.getFormID()
-                        }
-                    }
+                    this.setMessagesContainerFormId()
                     if (this.messagesContainerFormId && this.messagesContainerFormId == container.getFormID()) {
                         const message = changeInfo.baseObj.getName()
-                        printConsole(changeInfo.baseObj.getFormID().toString(16))
                         if (this.isEventMessage(message)) {
-                            const event = this.parseEventMessage(message)
-                            if (event && ((!this.modName) || this.modName == event.target)) {
-                                // Debug.messageBox(`Skyrim Platform Received Event ${JSON.stringify(event)}`)
-                                this.messageHandlers.forEach(handler => {
-                                    if (handler.receiveEvents)
-                                        handler.handler(message)
-                                })
-                                this.eventHandlers.forEach(handler => handler(event))
-                            }
-                        } else if (this.isEventReply(message)) {
-                            const reply = this.parseEventMessage(message)
-                            if (reply && reply.replyID && ((!this.modName) || this.modName == reply.target)) {
-                                if (this.replyHandlers.has(reply.replyID)) {
-                                    const replyHandler = this.replyHandlers.get(reply.replyID)
-                                    this.replyHandlers.delete(reply.replyID)
-                                    if (replyHandler)
-                                        replyHandler(reply)
-                                }
-                            }
+                            this.handleIncomingEvent(message)
+                        } else if (this.isRequestMessage(message)) {
+                            this.handleIncomingRequest(message)
+                        } else if (this.isResponseMessage(message)) {
+                            this.handleIncomingResponse(message)
                         } else {
                             this.messageHandlers.forEach(handler => handler.handler(message))
                         }

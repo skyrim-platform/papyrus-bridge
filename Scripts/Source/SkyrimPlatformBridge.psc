@@ -78,7 +78,8 @@ string property SkyrimPlatformGenericModEventName = "DEPRECATE_ME" autoReadonly
 string property SkyrimPlatformBridgeCustomEventSkseModEventNamePrefix = "SkyrimPlatformBridge_Event_" autoReadonly
 string property SkyrimPlatformBridgeEventMessageDelimiter = "<||>" autoReadonly
 string property SkyrimPlatformBridgeEventMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_EVENT::" autoReadonly
-string property SkyrimPlatformBridgeEventReplyMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_REPLY::" autoReadonly
+string property SkyrimPlatformBridgeRequestMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_REQUEST::" autoReadonly
+string property SkyrimPlatformBridgeResponseMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_RESPONSE::" autoReadonly
 
 SkyrimPlatformBridge function GetPrivateAPI() global
     return Game.GetFormFromFile(0x800, "SkyrimPlatformBridge.esp") as SkyrimPlatformBridge
@@ -236,7 +237,7 @@ endFunction
 
 function ReplyAPI(string eventName, string source, string target, string data, string replyId)
     string[] eventParts = new string[6]
-    eventParts[0] = SkyrimPlatformBridgeEventReplyMessagePrefix
+    eventParts[0] = SkyrimPlatformBridgeResponseMessagePrefix
     eventParts[1] = eventName
     eventParts[2] = source
     eventParts[3] = target
