@@ -1,30 +1,96 @@
-# Papyrus <--> Skyrim Platform Bridge ~ Prototype v2
+# Papyrus <--> Skyrim Platform Bridge
 
-## Monday Night
+> Communicate *easily* between Papyrus and Skyrim Platform
 
-- [x] await
-- [x] Lock da Forks!
-- [x] Mod 'contexts' -> `getMod`
-    - [x] Send Event from Papyrus to Skyrim Platform (but make sure that ONLY the correct target mod gets the event)
-    - [x] Send Event from Skyrim Platform to Papyrus (but!)
-- [ ] blocking reply
-- [ ] batch all TS messages sent to a mod until the mod reports in that it's READY
+# 🌉
 
-## DONE
+Skyrim Platform is lovely.
 
-- onMessage / sendMessage <--- remove or rename like onRawMessage and sendRawMessage
-- onEvent / sendEvent
+But communication between Papyrus and Skyrim Platform is not easy.
 
-## TODO
+This makes it really easy!
 
-- [x] Lock 69 Forks
-- Reply (sync and async)
-    - [x] Can reply from Papyrus to SP
-        - [x] Can use await
-        - [x] Can use callback
-    - [ ] Can reploy from SP to Papyrus
-        - [ ] Blocking
-        - [ ] Non-blocking (???)
-- Event scoping to a "Mod" concept
-- Targeting specific "Mod" targets with messages
-- Mutliple Forks with Locking (and flip between RemoveItem and AddItem, state tracking per fork, update containerChanged to check newContainer OR oldContainer)
+# 💾
+
+To install, simply download using your favorite mod manager.
+
+https://some/nexus/link
+
+Depending on your TypeScript setup, you will also want to open the mod folder and copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
+
+# 🎓
+
+## Hello, world!
+
+A common use-case nowadays for using Papyrus alongside Skyrim Platform is:
+
+- Using Papyrus to capture Papyrus events.
+
+In this example, we'll capture a keyboard event and send it to Skyrim Platform.
+
+> 💡 As of 2021, Skyrim Platform supports [listening for Papyrus Events](https://github.com/skyrim-multiplayer/skymp/blob/main/docs/skyrim_platform/events.md) triggered on objects in the game, but it is very slow and not recommended at this time. 
+
+### I. Create a Skyrim Mod (.esp)
+
+Name it something like `HelloBridge.esp`
+
+### II. Setup a Reference Alias for PlayerRef
+
+I'm assuming you know how to create a new Quest and setup a Quest Alias pointing to the PlayerRef.
+
+If not, see this video: [Attaching Skyrim scripts to player events](https://www.youtube.com/watch?v=zqaef3ETChU&list=PLektTyeQhBZdV_qI4uQcbOSBJ_QemyhsR&index=6)
+
+### III. Create Your Papyrus Script
+
+Add an attached script to the PlayerRef alias, e.g. `HelloBridge`
+
+### IV. Edit Script
+
+We'll be using `ConnectedToSkyrimPlatform` which is a base script used to simplify communication between *your mod's* Papyrus and *your mod's* TypeScript.
+
+Later, we'll look at using the `SkyrimPlatformBridge` Papyrus script which can be used globally from any Papyrus Script.
+
+Update `HelloBridge.psc` with the following code:
+
+```psc
+scriptName HelloBridge extends ConnectedToSkyrimPlatform
+
+; Let's say we will do something when you press
+; Left Shift + B
+int LEFT_SHIFT_KEY = 42
+int B_KEY = 48
+
+event OnConnected()
+    RegisterForKey(B_KEY)
+endEvent
+
+event OnKeyDown(int keyCode)
+    if keyCode == B_KEY && Input.IsKeyPressed(LEFT_SHIFT)
+        ; Tell Skyrim Platform about the key press
+        Send("Keyboard Shortcut Presed")
+    endIf
+endEvent
+```
+
+### V: Create Skyrim Platform Script
+
+Add the following to a new or existing `.ts` script in your plugin:
+
+```ts
+import papyrusBridge from 'papyrusBridge'
+
+// Get a bridge to talk to your Papyrus mod by providing
+// the name of the .esp/.esm/.esl (without extension)
+const helloBridge = papyrusBridge.getMod('HelloBridge')
+
+helloBridge.on('message', message => {
+    if (message.text == 'Keyboard Shortcut Presed')
+        Debug.messageBox('The keyboard shortcut was pressed!')
+})
+```
+
+> 💡 If `'papyrusBridge'` does not autocomplete or your script does not compile, copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
+
+### VI: Run the Game!
+
+Run the game and press Left Shift + B

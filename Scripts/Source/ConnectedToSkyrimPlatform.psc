@@ -14,13 +14,13 @@ event OnInit()
     ConnectionTimeout = 30.0
     OnSetup()
     _bridgeAPI = SkyrimPlatformBridge.GetPrivateAPI()
-    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ModName, "OnSkyrimPlatformEvent")
+    RegisterForModEvent("SkyrimPlatformBridge_EventForMod_" + ModName, "OnSkyrimPlatformEventForMod")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
 event OnPlayerLoadGame()
     OnSetup()
-    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ModName, "OnSkyrimPlatformEvent")
+    RegisterForModEvent("SkyrimPlatformBridge_EventForMod_" + ModName, "OnSkyrimPlatformEventForMod")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
@@ -139,23 +139,20 @@ string function Request(string query, string parameters = "", string target = ""
     endIf
 endFunction
 
-event OnRawMessage(string eventName, string source, string target, string data, string replyID)
+event OnSkyrimPlatformMessage(string eventName, string source, string data)
 endEvent
 
-event OnMessage(string eventName, string source, string data)
+event OnSkyrimPlatformEvent(string eventName, string source, string data)
 endEvent
 
-event OnEvent(string eventName, string source, string data)
-endEvent
-
-event OnRequest(string query, string source, string data, string replyId)
+event OnSkyrimPlatformRequest(string query, string source, string data, string replyId)
 endEvent
 
 event OnConnected()
     Debug.MessageBox("CONNECTED")
 endEvent
 
-event OnSkyrimPlatformEvent(string messageType, string eventName, string source, string target, string data, string replyID)
+event OnSkyrimPlatformEventForMod(string messageType, string eventName, string source, string target, string data, string replyID)
     Debug.MessageBox("PAPYRUS RECEIVED: " + messageType + " " + eventName)
     ; if messageType == "REPLY"
     if eventName == "SkyrimPlatform_Connected"
