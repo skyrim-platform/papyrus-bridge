@@ -1,4 +1,4 @@
-scriptName SkyrimPlatformBridge extends Quest  
+scriptName SkyrimPlatformBridge extends Quest
 
 ObjectReference property MessagesContainer auto
 int NextMessageIndex = -1
@@ -80,6 +80,7 @@ string property SkyrimPlatformBridgeEventMessageDelimiter = "<||>" autoReadonly
 string property SkyrimPlatformBridgeEventMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_EVENT::" autoReadonly
 string property SkyrimPlatformBridgeRequestMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_REQUEST::" autoReadonly
 string property SkyrimPlatformBridgeResponseMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_RESPONSE::" autoReadonly
+xSkyrimPlatformBridge_ListenerManager property ThreadManager auto
 
 SkyrimPlatformBridge function GetPrivateAPI() global
     return Game.GetFormFromFile(0x800, "SkyrimPlatformBridge.esp") as SkyrimPlatformBridge
@@ -158,7 +159,12 @@ event OnInit()
     Messages[66] = SkyrimPlatformBridge_Message67
     Messages[67] = SkyrimPlatformBridge_Message68
     Messages[68] = SkyrimPlatformBridge_Message69
+    ThreadManager = GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_ListenerManager
 endEvent
+
+bool function IsRead()
+    return ThreadManager && ThreadManager.IsReady()
+endFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; API Public Global Functions
@@ -254,6 +260,31 @@ function ReplyAPI(string eventName, string source, string target, string data, s
         i += 1
     endWhile
     SendRawMessageAPI(eventText)
+endFunction
+
+string function BeginRequestAPI(string query, string source, string target, string parameters, string replyID)
+    string[] eventParts = new string[6]
+    eventParts[0] = SkyrimPlatformBridgeRequestMessagePrefix
+    eventParts[1] = query
+    eventParts[2] = source
+    eventParts[3] = target
+    eventParts[4] = replyID
+    eventParts[5] = parameters
+    string eventText = ""
+    int i = 0
+    while i < eventParts.Length
+        if i == 0
+            eventText += eventParts[i]
+        else
+            eventText += SkyrimPlatformBridgeEventMessageDelimiter + eventParts[i]
+        endIf
+        i += 1
+    endWhile
+    SendRawMessageAPI(eventText)
+endFunction
+
+string function GetUniqueReplyID()
+    return Utility.RandomFloat(100000, 10000000000) + "_" + Utility.RandomFloat(100000, 10000000000)
 endFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

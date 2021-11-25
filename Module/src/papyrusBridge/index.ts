@@ -1,16 +1,21 @@
 import { on, once, Game, Form, writeLogs, printConsole, Debug } from 'skyrimPlatform'
 import * as sp from 'skyrimPlatform'
 
+// todo add onConnection
+
 const skyrimPlatformBridgeEsp = 'SkyrimPlatformBridge.esp'
 const skyrimPlatformBridgeMessagesContainerId = 0xd66
 const skyrimPlatformBridgeQuestId = 0x800
 const skyrimPlatformBridgeDefaultMessageSkseModEventName = 'DEPRECATE_ME'
 const skyrimPlatformBridgeModEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_ModEvent_'
 const skyrimPlatformBridgeCustomEventSkseModEventNamePrefix = 'SkyrimPlatformBridge_Event_'
+const skyrimPlatformBridgeReplySkseModEventNamePrefix = 'SkyrimPlatformBridge_Response_'
 const skyrimPlatformBridgeEventMessageDelimiter = '<||>'
 const skyrimPlatformBridgeEventMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_EVENT::'
 const skyrimPlatformBridgeRequestMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_REQUEST::'
 const skyrimPlatformBridgeResponseMessagePrefix = '::SKYRIM_PLATFORM_BRIDGE_RESPONSE::'
+const skyrimPlatformBridgeJsonDataPrefix = '::SKYRIM_PLATFORM_BRIDGE_JSON::'
+const skyrimPlatformBridgeConnectionRequestEventName = 'SkyrimPlatform_ConnectionRequest'
 
 export interface PapyrusEvent {
     eventName: string,
@@ -20,6 +25,7 @@ export interface PapyrusEvent {
 }
 
 export interface PapyrusResponse {
+    // status: string,
     query: string,
     source?: string,
     target?: string,
@@ -34,11 +40,16 @@ export interface PapyrusRequest {
 }
 
 interface PapyrusRequestWithReplyID extends PapyrusRequest {
-    replyID: string
+    replyId: string
 }
 
 interface PapyrusResponseWithReplyID extends PapyrusResponse {
-    replyID: string
+    replyId: string
+}
+
+interface PapyrusReply {
+    response?: any,
+    replyId: string
 }
 
 interface PapyrusMessageHandler {
@@ -59,7 +70,7 @@ export class PapyrusBridge {
 
     messageHandlers = new Array<PapyrusMessageHandler>()
     eventHandlers = new Array<(event: PapyrusEvent) => void>()
-    replyHandlers = new Map<string, ((event: PapyrusResponse) => void)>()
+    sendResponseHandlers = new Map<string, ((event: PapyrusResponse) => void)>()
 
     constructor(modName: string = '') {
         this.modName = modName
@@ -83,11 +94,12 @@ export class PapyrusBridge {
         const target = event.target ?? this.modName
         const skseModEventName = target ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${target}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.eventName}`
         this.sendModEvent(skseModEventName, (modEvent, handle) => {
+            modEvent.pushString(handle, 'EVENT')
             modEvent.pushString(handle, event.eventName)
             modEvent.pushString(handle, event.source ?? this.modName ?? '')
             modEvent.pushString(handle, target ?? '')
             modEvent.pushString(handle, event.data ?? '')
-            modEvent.pushString(handle, '') // No reply ID
+            modEvent.pushString(handle, '') // No sendResponse ID
         })
     }
 
@@ -97,16 +109,25 @@ export class PapyrusBridge {
             const skseModEventName = target ? `${skyrimPlatformBridgeModEventSkseModEventNamePrefix}${target}` : `${skyrimPlatformBridgeCustomEventSkseModEventNamePrefix}${event.query}`
             let parameterText = ''
             if (event.parameters)
-                parameterText = (typeof event.parameters === 'string') ? event.parameters.toString() : JSON.stringify(event.parameters)
-            const replyID = this.GetUniqueReplyId()
-            this.replyHandlers.set(replyID, resolve)
+                parameterText = (typeof event.parameters === 'string') ? event.parameters.toString() : `${skyrimPlatformBridgeJsonDataPrefix}${JSON.stringify(event.parameters)}`
+            const replyId = this.GetUniqueReplyId()
+            this.sendResponseHandlers.set(replyId, resolve)
             this.sendModEvent(skseModEventName, (modEvent, handle) => {
+                modEvent.pushString(handle, 'REQUEST')
                 modEvent.pushString(handle, event.query)
                 modEvent.pushString(handle, event.source ?? this.modName ?? '')
                 modEvent.pushString(handle, target ?? '')
                 modEvent.pushString(handle, parameterText)
-                modEvent.pushString(handle, replyID)
+                modEvent.pushString(handle, replyId)
             })
+        })
+    }
+
+    sendResponse(event: PapyrusReply) {
+        const skseModEventName = `${skyrimPlatformBridgeReplySkseModEventNamePrefix}${event.replyId}`
+        this.sendModEvent(skseModEventName, (modEvent, handle) => {
+            modEvent.pushString(handle, event.replyId)
+            modEvent.pushString(handle, event.response ?? '')
         })
     }
 
@@ -172,14 +193,14 @@ export class PapyrusBridge {
     }
 
     public parseRequestMessage(message: string): PapyrusRequestWithReplyID | undefined {
-        const eventParts = message.split(skyrimPlatformBridgeRequestMessagePrefix)
+        const eventParts = message.split(skyrimPlatformBridgeEventMessageDelimiter)
         if (eventParts.length < 4)
             return
         return {
             query: eventParts[1],
             source: eventParts[2],
             target: eventParts[3],
-            replyID: eventParts[4],
+            replyId: eventParts[4],
             parameters: eventParts.slice(5).join('||')
         }
     }
@@ -192,7 +213,7 @@ export class PapyrusBridge {
             query: eventParts[1],
             source: eventParts[2],
             target: eventParts[3],
-            replyID: eventParts[4],
+            replyId: eventParts[4],
             data: eventParts.slice(5).join('||')
         }
     }
@@ -208,7 +229,7 @@ export class PapyrusBridge {
 
     handleIncomingEvent(message: string) {
         const event = this.parseEventMessage(message)
-        if (event && ((!this.modName) || this.modName == event.target)) {
+        if (event && ((!this.modName) || this.modName.toLowerCase() == event.target?.toLowerCase())) {
             this.messageHandlers.forEach(handler => {
                 if (handler.receiveEvents)
                     handler.handler(message)
@@ -218,17 +239,31 @@ export class PapyrusBridge {
     }
 
     handleIncomingRequest(message: string) {
-        Debug.messageBox("TODO HANDLE REQUEST")
+        const event = this.parseRequestMessage(message)
+        if (event && ((!this.modName) || this.modName.toLowerCase() == event.target?.toLowerCase())) {
+            this.messageHandlers.forEach(handler => {
+                if (handler.receiveEvents)
+                    handler.handler(message)
+            })
+            if (event.query == skyrimPlatformBridgeConnectionRequestEventName) {
+                this.sendResponse({
+                    replyId: event.replyId,
+                    response: 'CONNECTED'
+                })
+            } else {
+                // this.eventHandlers.forEach(handler => handler(event))
+            }
+        }
     }
 
     handleIncomingResponse(message: string) {
-        const reply = this.parseResponseMessage(message)
-        if (reply && reply.replyID && ((!this.modName) || this.modName == reply.target)) {
-            if (this.replyHandlers.has(reply.replyID)) {
-                const replyHandler = this.replyHandlers.get(reply.replyID)
-                this.replyHandlers.delete(reply.replyID)
-                if (replyHandler)
-                    replyHandler(reply)
+        const sendResponse = this.parseResponseMessage(message)
+        if (sendResponse && sendResponse.replyId && ((!this.modName?.toLowerCase()) || this.modName == sendResponse.target?.toLowerCase())) {
+            if (this.sendResponseHandlers.has(sendResponse.replyId)) {
+                const sendResponseHandler = this.sendResponseHandlers.get(sendResponse.replyId)
+                this.sendResponseHandlers.delete(sendResponse.replyId)
+                if (sendResponseHandler)
+                    sendResponseHandler(sendResponse)
             }
         }
     }
@@ -237,6 +272,7 @@ export class PapyrusBridge {
         if (!this.isListening) {
             this.isListening = true
             on('containerChanged', changeInfo => {
+                printConsole(`ON CONTAINER CHANGE ${JSON.stringify(changeInfo)}`)
                 const container = changeInfo.newContainer || changeInfo.oldContainer
                 if (container) {
                     this.setMessagesContainerFormId()
