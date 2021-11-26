@@ -80,7 +80,9 @@ string property SkyrimPlatformBridgeEventMessageDelimiter = "<||>" autoReadonly
 string property SkyrimPlatformBridgeEventMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_EVENT::" autoReadonly
 string property SkyrimPlatformBridgeRequestMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_REQUEST::" autoReadonly
 string property SkyrimPlatformBridgeResponseMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_RESPONSE::" autoReadonly
-xSkyrimPlatformBridge_ListenerManager property ThreadManager auto
+xSkyrimPlatformBridge_Listener[] ListenerScripts
+int NextListenerIndex
+bool property IsReady auto
 
 SkyrimPlatformBridge function GetPrivateAPI() global
     return Game.GetFormFromFile(0x800, "SkyrimPlatformBridge.esp") as SkyrimPlatformBridge
@@ -159,12 +161,19 @@ event OnInit()
     Messages[66] = SkyrimPlatformBridge_Message67
     Messages[67] = SkyrimPlatformBridge_Message68
     Messages[68] = SkyrimPlatformBridge_Message69
-    ThreadManager = GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_ListenerManager
+    ListenerScripts = new xSkyrimPlatformBridge_Listener[10]
+    ListenerScripts[0] = (Game.GetFormFromFile(0x846, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener1
+    ListenerScripts[1] = (Game.GetFormFromFile(0x847, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener2
+    ListenerScripts[2] = (Game.GetFormFromFile(0x848, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener3
+    ListenerScripts[3] = (Game.GetFormFromFile(0x849, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener4
+    ListenerScripts[4] = (Game.GetFormFromFile(0x84a, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener5
+    ListenerScripts[5] = (Game.GetFormFromFile(0x84b, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener6
+    ListenerScripts[6] = (Game.GetFormFromFile(0x84c, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener7
+    ListenerScripts[7] = (Game.GetFormFromFile(0x84d, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener8
+    ListenerScripts[8] = (Game.GetFormFromFile(0x84e, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener9
+    ListenerScripts[9] = (Game.GetFormFromFile(0x84f, "SkyrimPlatformBridge.esp") as Quest).GetAliasByName("PlayerRef") as xSkyrimPlatformBridge_Listener10
+    IsReady = true
 endEvent
-
-bool function IsRead()
-    return ThreadManager && ThreadManager.IsReady()
-endFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; API Public Global Functions
@@ -335,4 +344,15 @@ endFunction
 
 string function _getUniqueReplyId()
     return Utility.RandomFloat(0, 100000000) + "_" + Utility.RandomFloat(0, 100000000)
+endFunction
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Event Listeners
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+xSkyrimPlatformBridge_Listener function GetListener()
+    ; Simple round-robin distribution, we don't lock or anything, each listener supports N ConnectedToSkyrimPlatform scripts
+    xSkyrimPlatformBridge_Listener listener = ListenerScripts[NextListenerIndex]
+    NextListenerIndex += 1
+    return listener
 endFunction

@@ -14,26 +14,24 @@ event OnInit()
     ConnectionTimeout = 30.0
     OnSetup()
     _bridgeAPI = SkyrimPlatformBridge.GetPrivateAPI()
-    RegisterForModEvent("SkyrimPlatformBridge_EventForMod_" + ModName, "OnSkyrimPlatformEventForMod")
+    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ModName, "HandleSkyrimPlatformEvent")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
 event OnPlayerLoadGame()
     OnSetup()
-    RegisterForModEvent("SkyrimPlatformBridge_EventForMod_" + ModName, "OnSkyrimPlatformEventForMod")
+    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ModName, "HandleSkyrimPlatformEvent")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
 function ConnectToSkyrimPlatform(float timeout)
+    _connected = false
     float startTime = Utility.GetCurrentRealTime()
-    _connected = Request("SkyrimPlatform_ConnectionRequest", timeout = 0.5) == "CONNECTED" ; Try once first with quick timeout
     while (! _connected) && (Utility.GetCurrentRealTime() - startTime) < timeout
-        _connected = Request("SkyrimPlatform_ConnectionRequest", timeout = 1.0) == "CONNECTED"
+        _connected = Request("SkyrimPlatformBridge_ConnectionRequest", timeout = 0.5) == "CONNECTED"
     endWhile
     if _connected
-        Debug.MessageBox("We are connected! " + ModName)
-    else
-        Debug.MessageBox("NOT CONNECTED :( " + ModName)
+        OnConnected()
     endIf
 endFunction
 
@@ -105,7 +103,7 @@ function Send(string eventName, string data = "", string target = "", string sou
     _bridgeAPI.SendEventAPI(eventName, source, target, data)
 endFunction
 
-string function Request(string query, string parameters = "", string target = "", string source = "", float waitInterval = 0.5, float timeout = 10.0)
+string function Request(string query, string parameters = "", string target = "", string source = "", float waitInterval = 0.5, float timeout = 10.0) ; set back to 0.5 (the 3 interval)
     if ! source
         source = ModName
     endIf
@@ -114,7 +112,7 @@ string function Request(string query, string parameters = "", string target = ""
     endIf
 
     string replyID = _bridgeAPI.GetUniqueReplyID()
-    xSkyrimPlatformBridge_Listener listener = _bridgeAPI.ThreadManager.GetListener()
+    xSkyrimPlatformBridge_Listener listener = _bridgeAPI.GetListener()
     listener.ListenForReply(replyID)
 
     float startQueryTime = Utility.GetCurrentRealTime()
@@ -139,26 +137,39 @@ string function Request(string query, string parameters = "", string target = ""
     endIf
 endFunction
 
-event OnSkyrimPlatformMessage(string eventName, string source, string data)
+event OnMessage(string text)
+    Debug.MessageBox("MESSAGE: " + text)
+endEvent
+
+event OnEvent(string eventName, string data)
+    Debug.MessageBox("EVENT: " + eventName + " " + data)
+endEvent
+
+event OnRequest(string query, string parameters, string replyId)
+    Debug.MessageBox("REQUEST: " + query + " " + parameters + " " + replyId)
+endEvent
+
+event OnSkyrimPlatformMessage(string source, string text)
+    OnMessage(text)
 endEvent
 
 event OnSkyrimPlatformEvent(string eventName, string source, string data)
+    OnEvent(eventName, data)
 endEvent
 
-event OnSkyrimPlatformRequest(string query, string source, string data, string replyId)
+event OnSkyrimPlatformRequest(string query, string source, string parameters, string replyId)
+    OnRequest(query, parameters, replyId)
 endEvent
 
 event OnConnected()
-    Debug.MessageBox("CONNECTED")
 endEvent
 
-event OnSkyrimPlatformEventForMod(string messageType, string eventName, string source, string target, string data, string replyID)
-    Debug.MessageBox("PAPYRUS RECEIVED: " + messageType + " " + eventName)
-    ; if messageType == "REPLY"
-    if eventName == "SkyrimPlatform_Connected"
-        _connected = true
-        OnConnected()
-    else
-        OnEvent(eventName, source, data)
+event HandleSkyrimPlatformEvent(string messageType, string eventNameOrQuery, string source, string target, string data, string replyID)
+    if messageType == "message"
+        OnSkyrimPlatformMessage(source, data)
+    elseIf messageType == "event"
+        OnSkyrimPlatformEvent(eventNameOrQuery, source, data)
+    elseIf messageType == "request"
+        OnSkyrimPlatformRequest(eventNameOrQuery, source, data, replyID)
     endIf
 endEvent

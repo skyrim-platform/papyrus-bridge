@@ -18,6 +18,10 @@ https://some/nexus/link
 
 Depending on your TypeScript setup, you will also want to open the mod folder and copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
 
+# 🎥
+
+To get started quickly, watch the YouTube tutorial [TODO]
+
 # 🎓
 
 ## Hello, world!

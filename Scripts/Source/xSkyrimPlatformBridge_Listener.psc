@@ -1,11 +1,14 @@
-scriptName xSkyrimPlatformBridge_Listener extends Quest
+scriptName xSkyrimPlatformBridge_Listener extends ReferenceAlias
 
 float _lock
-bool _ready
+bool _ready ; TODO
 string[] _replyIDs
 string[] _responses
 
 event OnInit()
+endEvent
+
+event OnPlayerLoadGame()
 endEvent
 
 string function GetResponse(string replyID) ; SkyrimPlatformBridge_Response_
@@ -37,21 +40,31 @@ string function GetResponse(string replyID) ; SkyrimPlatformBridge_Response_
     return ""
 endFunction
 
+; TODO add a timeout and use OnUpdate() to remove ones past their due date :)
 function ListenForReply(string replyID)
-    RegisterForModEvent("SkyrimPlatformBridge_Response_" + replyID, "OnReply")
     Lock()
-    _replyIDs = Utility.ResizeStringArray(_replyIDs, _replyIDs.Length + 1)
-    _replyIDs[_replyIDs.Length - 1] = replyID
-    _responses = Utility.ResizeStringArray(_responses, _responses.Length + 1)
+    if ! _replyIDs
+        _replyIDs = new string[1]
+        _replyIDs[0] = replyID
+        _responses = new string[1]
+        _responses[0] = ""
+    else
+        _replyIDs = Utility.ResizeStringArray(_replyIDs, _replyIDs.Length + 1)
+        _replyIDs[_replyIDs.Length - 1] = replyID
+        _responses = Utility.ResizeStringArray(_responses, _responses.Length + 1)
+    endIf
+    RegisterForModEvent("SkyrimPlatformBridge_Response_" + replyID, "OnReply") ; Reminder, this will trigger for all 10 listeners
     Unlock()
 endFunction
 
 event OnReply(string replyID, string response)
-    UnregisterForModEvent("SkyrimPlatformBridge_Response_" + replyID)
-    Lock()
     int replyIndex = _replyIDs.Find(replyID)
-    _responses[replyIndex] = "RESPONSE:" + response ; 'RESPONSE:' to support empty responses as valid
-    Unlock()
+    if replyIndex != -1
+        UnregisterForModEvent("SkyrimPlatformBridge_Response_" + replyID)
+        Lock()
+        _responses[replyIndex] = "RESPONSE:" + response ; 'RESPONSE:' to support empty responses as valid
+        Unlock()
+    endIf
 endEvent
 
 function Lock(float lock = 0.0, float waitInterval = 0.1)
