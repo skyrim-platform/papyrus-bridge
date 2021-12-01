@@ -195,6 +195,16 @@ export class PapyrusBridge {
         // TODO - queue if connectionName but not isConnected
 
         const target = message.target ?? this.connectionName ?? ''
+
+        if (! target) {
+            once('update', () => {
+                printConsole(`[PapyrusBridge] Tried sending event to null target ${JSON.stringify(message)}`)
+            })
+            return new Promise<undefined>(resolve => {
+                resolve(undefined)
+            })
+        }
+
         const source = message.source ?? this.connectionName ?? ''
 
         let data: any
@@ -222,7 +232,7 @@ export class PapyrusBridge {
         }
 
         // SKSE Mod Event Name (either send globally, or send to specific mod, or it's a reply to a specific message)
-        let skseModEventName = this.connectionName ? `${skseModEventNamePrefix_ModEvent}${this.connectionName}` : skseModEventNamePrefix_GlobalEvent
+        let skseModEventName = `${skseModEventNamePrefix_ModEvent}${target}`
         if (messageType == 'response')
             skseModEventName = `${skseModEventNamePrefix_Response}${message.replyId}`
 
