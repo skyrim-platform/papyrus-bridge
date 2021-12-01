@@ -16,7 +16,7 @@ const messagePrefix_Request = '::SKYRIM_PLATFORM_BRIDGE_REQUEST::'
 const messagePrefix_Response = '::SKYRIM_PLATFORM_BRIDGE_RESPONSE::'
 
 const skyrimPlatformBridgeJsonDataPrefix = '::SKYRIM_PLATFORM_BRIDGE_JSON::'
-const skyrimPlatformBridgeConnectionRequestEventName = 'SkyrimPlatformBridge_ConnectionRequest'.toLowerCase()
+const skyrimPlatformBridgeConnectionRequestQueryName = 'SkyrimPlatformBridge_ConnectionRequest'.toLowerCase()
 const skyrimPlatformBridgeConnectionRequestResponseText = 'CONNECTED'
 
 const messageTypePrefixes = new Map<string, string>([
@@ -39,15 +39,15 @@ export interface PapyrusMessage {
 }
 
 export interface PapyrusResponse {
-    source?: string,
-    target?: string,
+    source: string,
+    target: string,
     data?: any,
-    replyId?: string
+    replyId: string
 }
 
 export interface PapyrusRequest {
     query: string,
-    source?: string,
+    source: string,
     target?: string,
     parameters?: any,
     replyId?: string
@@ -89,13 +89,10 @@ export class PapyrusBridge {
     questFormId = 0
     isConnected = false
     isListening = false
-    messageCallbacks = new Map<string, Array<(message: any) => void>>([
-        ['event', new Array<(message: any) => void>()],
-        ['request', new Array<(message: any) => void>()],
-        ['response', new Array<(message: any) => void>()],
-        ['connected', new Array<(message: any) => void>()],
-    ])
-    requestResponsePromises = new Map<string, (message: PapyrusRequest) => void>()
+    requestCallbacks = new Array<(request: PapyrusRequest, reply: (data: any) => void) => void>()
+    eventCallbacks = new Array<(event: PapyrusEvent) => void>()
+    connectionCallbacks = new Array<(source: string) => void>()
+    requestResponsePromises = new Map<string, (response: PapyrusResponse) => void>()
 
     constructor(connectionName: string = '') {
         this.connectionName = connectionName.toLowerCase()
@@ -107,6 +104,21 @@ export class PapyrusBridge {
 
     public getConnectionName() {
         return this.connectionName
+    }
+
+    public onRequest(callback: (request: PapyrusRequest, reply: (data: any) => void) => void) {
+        this.listen()
+        this.requestCallbacks.push(callback)
+    }
+
+    public onEvent(callback: (event: PapyrusEvent) => void) {
+        this.listen()
+        this.eventCallbacks.push(callback)
+    }
+
+    public onConnection(callback: (source: string) => void) {
+        this.listen()
+        this.connectionCallbacks.push(callback)
     }
 
     public listen() {
@@ -123,32 +135,7 @@ export class PapyrusBridge {
                             if (messageType) {
                                 const message = this.parse(messageType, messageText)
                                 if (message) {
-                                    if (messageType == 'request' && message.query == skyrimPlatformBridgeConnectionRequestEventName) {
-                                        if ((! this.connectionName) || this.connectionName == message.source) {
-                                            this.send('response', { data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: message.replyId, source: this.connectionName, target: message.source })
-                                            if (this.connectionName && ! this.isConnected) {
-                                                this.isConnected = true
-                                            }
-                                            if (! this.activeConnections.has(message.source)) {
-                                                this.activeConnections.add(message.source)
-                                                const callbacks = this.messageCallbacks.get('connected')
-                                                if (callbacks)
-                                                    callbacks.forEach(callback => callback(message))
-                                            }
-                                        }
-                                    } else {
-                                        if (this.messageCallbacks.has(messageType)) {
-                                            const callbacks = this.messageCallbacks.get(messageType)
-                                            if (callbacks)
-                                                callbacks.forEach(callback => callback(message))
-                                        }
-                                        if (messageType == 'response' && message.replyId) {
-                                            if (this.requestResponsePromises.has(message.replyId)) {
-                                                this.requestResponsePromises.get(message.replyId)!(message)
-                                                this.requestResponsePromises.delete(message.replyId)
-                                            }
-                                        }
-                                    }
+                                    this._onPapyrusMessage(messageType, message)
                                 }
                             }
                         }
@@ -270,17 +257,6 @@ export class PapyrusBridge {
         }
     }
 
-    public on(messageType: 'event', callback: (message: PapyrusEvent) => void): void
-    public on(messageType: 'request', callback: (message: PapyrusRequest) => void): void
-    public on(messageType: 'response', callback: (message: PapyrusResponse) => void): void
-    public on(messageType: 'connected', callback: (message: PapyrusEvent) => void): void
-    public on(messageType: string, callback: (message: any) => any): void {
-        if (this.messageCallbacks.has(messageType)) {
-            this.listen()
-            this.messageCallbacks.get(messageType)?.push(callback)
-        }
-    }
-
     public parse(messageType: 'event', message: string): PapyrusEvent | undefined
     public parse(messageType: 'request', message: string): PapyrusRequest | undefined
     public parse(messageType: 'response', message: string): PapyrusResponse | undefined
@@ -309,6 +285,57 @@ export class PapyrusBridge {
 
     public getUniqueReplyId() {
         return `${Math.random()}_${Math.random()}`
+    }
+
+    _onPapyrusMessage(messageType: string, message: any) {
+        switch (messageType) {
+            case 'event': { this._onEvent(message); break }
+            case 'request': { this._onRequest(message); break }
+            case 'response': { this._onResponse(message); break }
+        }
+    }
+
+    _onEvent(event: PapyrusEvent) {
+        this.eventCallbacks.forEach(callback => callback(event))
+    }
+
+    _onRequest(request: PapyrusRequest) {
+        if (request.query == skyrimPlatformBridgeConnectionRequestQueryName) {
+            this._onConnectionRequest(request)
+        } else {
+            this.requestCallbacks.forEach(callback => {
+                callback(request, (data: any) => {
+                    this.send('response', {
+                        replyId: request.replyId,
+                        target: request.source,
+                        source: this.connectionName ?? '',
+                        data: data
+                    })
+                })
+            })
+        }
+    }
+
+    _onConnectionRequest(request: PapyrusRequest) {
+        if ((! this.connectionName) || this.connectionName == request.source) {
+            this.send('response', { data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: request.replyId, source: this.connectionName, target: request.source })
+            if (this.connectionName && ! this.isConnected) {
+                this.isConnected = true
+            }
+            if (! this.activeConnections.has(request.source)) {
+                this.activeConnections.add(request.source)
+                this.connectionCallbacks.forEach(callback => callback(request.source))
+            }
+        }
+    }
+
+    _onResponse(response: PapyrusResponse) {
+        if (response.replyId) {
+            if (this.requestResponsePromises.has(response.replyId)) {
+                this.requestResponsePromises.get(response.replyId)!(response)
+                this.requestResponsePromises.delete(response.replyId)
+            }
+        }
     }
 
     setMessagesContainerFormId() {

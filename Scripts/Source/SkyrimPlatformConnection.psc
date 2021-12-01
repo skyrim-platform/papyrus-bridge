@@ -25,6 +25,7 @@ event OnPlayerLoadGame()
 endEvent
 
 function ConnectToSkyrimPlatform(float timeout)
+    Debug.MessageBox("Trying to connect to Skyrim Platform...")
     IsConnected = false
     float startTime = Utility.GetCurrentRealTime()
     while (! IsConnected) && (Utility.GetCurrentRealTime() - startTime) < timeout
