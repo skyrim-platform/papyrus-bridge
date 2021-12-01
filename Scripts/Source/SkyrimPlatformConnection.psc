@@ -81,7 +81,7 @@ function Send(string eventName, string data = "", string target = "", string sou
     _bridgeAPI.SendEventAPI(eventName, source, target, data)
 endFunction
 
-string function Request(string query, string parameters = "", string target = "", string source = "", float waitInterval = 0.5, float timeout = 10.0) ; set back to 0.5 (the 3 interval)
+string function Request(string query, string data = "", string target = "", string source = "", float waitInterval = 0.5, float timeout = 10.0) ; set back to 0.5 (the 3 interval)
     if ! source
         source = ConnectionName
     endIf
@@ -94,7 +94,7 @@ string function Request(string query, string parameters = "", string target = ""
     listener.ListenForReply(replyID)
 
     float startQueryTime = Utility.GetCurrentRealTime()
-    _bridgeAPI.BeginRequestAPI(query, source, target, parameters, replyID)
+    _bridgeAPI.BeginRequestAPI(query, source, target, data, replyID)
 
     string response = listener.GetResponse(replyID)
     bool timedOut = ! response
@@ -109,7 +109,7 @@ string function Request(string query, string parameters = "", string target = ""
 
     if timedOut
         return "SKYRIM_PLATFORM_REQUEST_TIMEOUT Exceeded " + timeout + " seconds"
-        ; return "SKYRIM_PLATFORM_REQUEST_TIMEOUT " + query + " " + parameters + " " + target + " " + source
+        ; return "SKYRIM_PLATFORM_REQUEST_TIMEOUT " + query + " " + data + " " + target + " " + source
     else
         ; Remove the 'RESPONSE:' prefix provided (so that Papyrus' GetResponse() works with empty responses)
         return StringUtil.Substring(response, 9)
@@ -120,16 +120,16 @@ event OnEvent(string eventName, string data)
     Debug.MessageBox("EVENT: " + eventName + " " + data)
 endEvent
 
-event OnRequest(string query, string parameters, string replyId)
-    Debug.MessageBox("REQUEST: " + query + " " + parameters + " " + replyId)
+event OnRequest(string query, string data, string replyId)
+    Debug.MessageBox("REQUEST: " + query + " " + data + " " + replyId)
 endEvent
 
 event OnSkyrimPlatformEvent(string eventName, string source, string data)
     OnEvent(eventName, data)
 endEvent
 
-event OnSkyrimPlatformRequest(string query, string source, string parameters, string replyId)
-    OnRequest(query, parameters, replyId)
+event OnSkyrimPlatformRequest(string query, string source, string data, string replyId)
+    OnRequest(query, data, replyId)
 endEvent
 
 event OnConnected()

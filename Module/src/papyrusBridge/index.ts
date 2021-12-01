@@ -49,7 +49,7 @@ export interface PapyrusRequest {
     query: string,
     source: string,
     target?: string,
-    parameters?: any,
+    data?: any,
     replyId?: string
 }
 
@@ -257,11 +257,11 @@ export class PapyrusBridge {
         }
     }
 
-    public parse(messageType: 'event', message: string): PapyrusEvent | undefined
-    public parse(messageType: 'request', message: string): PapyrusRequest | undefined
-    public parse(messageType: 'response', message: string): PapyrusResponse | undefined
-    public parse(messageType: string, message: string): any | undefined
-    public parse(messageType: string, message: string): any | undefined {
+    parse(messageType: 'event', message: string): PapyrusEvent | undefined
+    parse(messageType: 'request', message: string): PapyrusRequest | undefined
+    parse(messageType: 'response', message: string): PapyrusResponse | undefined
+    parse(messageType: string, message: string): any | undefined
+    parse(messageType: string, message: string): any | undefined {
         const eventParts = message.split(skyrimPlatformBridgeEventMessageDelimiter)
         if (eventParts.length < 4)
             return

@@ -271,14 +271,14 @@ function ReplyAPI(string eventName, string source, string target, string data, s
     SendRawMessageAPI(eventText)
 endFunction
 
-string function BeginRequestAPI(string query, string source, string target, string parameters, string replyID)
+string function BeginRequestAPI(string query, string source, string target, string data, string replyID)
     string[] eventParts = new string[6]
     eventParts[0] = SkyrimPlatformBridgeRequestMessagePrefix
     eventParts[1] = query
     eventParts[2] = source
     eventParts[3] = target
     eventParts[4] = replyID
-    eventParts[5] = parameters
+    eventParts[5] = data
     string eventText = ""
     int i = 0
     while i < eventParts.Length
