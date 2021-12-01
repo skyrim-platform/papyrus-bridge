@@ -11,17 +11,15 @@ const skseModEventNamePrefix_Response = 'SkyrimPlatformBridge_Response_' // Rese
 
 const skyrimPlatformBridgeEventMessageDelimiter = '<||>'
 
-const messagePrefix_Message = '::SKYRIM_PLATFORM_BRIDGE_MESSAGE::'
 const messagePrefix_Event = '::SKYRIM_PLATFORM_BRIDGE_EVENT::'
 const messagePrefix_Request = '::SKYRIM_PLATFORM_BRIDGE_REQUEST::'
 const messagePrefix_Response = '::SKYRIM_PLATFORM_BRIDGE_RESPONSE::'
 
 const skyrimPlatformBridgeJsonDataPrefix = '::SKYRIM_PLATFORM_BRIDGE_JSON::'
-const skyrimPlatformBridgeConnectionRequestEventName = 'SkyrimPlatformBridge_ConnectionRequest'
+const skyrimPlatformBridgeConnectionRequestEventName = 'SkyrimPlatformBridge_ConnectionRequest'.toLowerCase()
 const skyrimPlatformBridgeConnectionRequestResponseText = 'CONNECTED'
 
 const messageTypePrefixes = new Map<string, string>([
-    [messagePrefix_Message, 'message'],
     [messagePrefix_Event, 'event'],
     [messagePrefix_Request, 'request'],
     [messagePrefix_Response, 'response']
@@ -92,21 +90,23 @@ export class PapyrusBridge {
     isConnected = false
     isListening = false
     messageCallbacks = new Map<string, Array<(message: any) => void>>([
-        ['message', new Array<(message: any) => void>()],
         ['event', new Array<(message: any) => void>()],
         ['request', new Array<(message: any) => void>()],
         ['response', new Array<(message: any) => void>()],
         ['connected', new Array<(message: any) => void>()],
-        ['raw', new Array<(message: any) => void>()]
     ])
     requestResponsePromises = new Map<string, (message: PapyrusRequest) => void>()
 
     constructor(connectionName: string = '') {
-        this.connectionName = connectionName
+        this.connectionName = connectionName.toLowerCase()
     }
 
     public getConnection(connectionName: string) {
-        return new PapyrusBridge(connectionName)
+        return new PapyrusBridge(connectionName.toLowerCase())
+    }
+
+    public getConnectionName() {
+        return this.connectionName
     }
 
     public listen() {
@@ -185,11 +185,9 @@ export class PapyrusBridge {
         })
     }
 
-    public async send(messageType: 'message', message: PapyrusMessage): Promise<undefined>
     public async send(messageType: 'event', message: PapyrusEvent): Promise<undefined>
     public async send(messageType: 'request', message: PapyrusRequest): Promise<PapyrusResponse>
     public async send(messageType: 'response', message: PapyrusResponse): Promise<undefined>
-    public async send(messageType: 'raw', message: MessageToSendToPapyrus): Promise<undefined>
     public async send(messageType: string, message: any): Promise<any>
     public async send(messageType: string, message: any): Promise<any> {
         // TODO - queue if connectionName but not isConnected
@@ -209,11 +207,9 @@ export class PapyrusBridge {
 
         let data: any
         switch (messageType) {
-            case 'message': { data = message.text; break }
             case 'event': { data = message.data; break }
             case 'request': { data = message.data; break }
             case 'response': { data = message.data; break }
-            case 'raw': { data = message.data; break }
         }
 
         let dataText = ''
@@ -228,7 +224,6 @@ export class PapyrusBridge {
         switch (messageType) {
             case 'event': { eventNameOrQuery = message.eventName; break }
             case 'request': { eventNameOrQuery = message.query; break }
-            case 'raw': { eventNameOrQuery = message.eventNameOrQuery; break }
         }
 
         // SKSE Mod Event Name (either send globally, or send to specific mod, or it's a reply to a specific message)
@@ -275,12 +270,10 @@ export class PapyrusBridge {
         }
     }
 
-    public on(messageType: 'message', callback: (message: PapyrusMessage) => void): void
     public on(messageType: 'event', callback: (message: PapyrusEvent) => void): void
     public on(messageType: 'request', callback: (message: PapyrusRequest) => void): void
     public on(messageType: 'response', callback: (message: PapyrusResponse) => void): void
     public on(messageType: 'connected', callback: (message: PapyrusEvent) => void): void
-    public on(messageType: 'raw', callback: (message: string) => void): void
     public on(messageType: string, callback: (message: any) => any): void {
         if (this.messageCallbacks.has(messageType)) {
             this.listen()
@@ -288,21 +281,19 @@ export class PapyrusBridge {
         }
     }
 
-    public parse(messageType: 'message', message: string): PapyrusMessage | undefined
     public parse(messageType: 'event', message: string): PapyrusEvent | undefined
     public parse(messageType: 'request', message: string): PapyrusRequest | undefined
     public parse(messageType: 'response', message: string): PapyrusResponse | undefined
-    public parse(messageType: 'raw', message: string): any | undefined
     public parse(messageType: string, message: string): any | undefined
     public parse(messageType: string, message: string): any | undefined {
         const eventParts = message.split(skyrimPlatformBridgeEventMessageDelimiter)
         if (eventParts.length < 4)
             return
         switch (messageType) {
-            case 'message': { return { source: eventParts[2], target: eventParts[3], text: eventParts.slice(5).join('||') } }
-            case 'event': { return { eventName: eventParts[1], source: eventParts[2], target: eventParts[3], data: eventParts.slice(5).join('||') } }
-            case 'request': { return { query: eventParts[1], source: eventParts[2], target: eventParts[3], replyId: eventParts[4], data: eventParts.slice(5).join('||') } }
-            case 'response': { return { source: eventParts[2], target: eventParts[3], replyId: eventParts[4], data: eventParts.slice(5).join('||') } }
+            case 'message': { return { source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), text: eventParts.slice(5).join('||') } }
+            case 'event': { return { eventName: eventParts[1].toLowerCase(), source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), data: eventParts.slice(5).join('||') } }
+            case 'request': { return { query: eventParts[1].toLowerCase(), source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), replyId: eventParts[4], data: eventParts.slice(5).join('||') } }
+            case 'response': { return { source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), replyId: eventParts[4], data: eventParts.slice(5).join('||') } }
         }
     }
 

@@ -5,9 +5,9 @@ scriptName SkyrimPlatformConnection extends ReferenceAlias
 ; timedOut = true
 
 string _connectionName
-bool _connected
 SkyrimPlatformBridge _bridgeAPI
 
+bool property IsConnected auto
 float property ConnectionTimeout auto
 
 event OnInit()
@@ -25,12 +25,12 @@ event OnPlayerLoadGame()
 endEvent
 
 function ConnectToSkyrimPlatform(float timeout)
-    _connected = false
+    IsConnected = false
     float startTime = Utility.GetCurrentRealTime()
-    while (! _connected) && (Utility.GetCurrentRealTime() - startTime) < timeout
-        _connected = Request("SkyrimPlatformBridge_ConnectionRequest", timeout = 0.5) == "CONNECTED"
+    while (! IsConnected) && (Utility.GetCurrentRealTime() - startTime) < timeout
+        IsConnected = Request("SkyrimPlatformBridge_ConnectionRequest", timeout = 0.5) == "CONNECTED"
     endWhile
-    if _connected
+    if IsConnected
         OnConnected()
     endIf
 endFunction
@@ -107,16 +107,13 @@ string function Request(string query, string parameters = "", string target = ""
     endWhile
 
     if timedOut
-        return "SKYRIM_PLATFORM_REQUEST_TIMEOUT " + query + " " + parameters + " " + target + " " + source
+        return "SKYRIM_PLATFORM_REQUEST_TIMEOUT Exceeded " + timeout + " seconds"
+        ; return "SKYRIM_PLATFORM_REQUEST_TIMEOUT " + query + " " + parameters + " " + target + " " + source
     else
         ; Remove the 'RESPONSE:' prefix provided (so that Papyrus' GetResponse() works with empty responses)
         return StringUtil.Substring(response, 9)
     endIf
 endFunction
-
-event OnMessage(string text)
-    Debug.MessageBox("MESSAGE: " + text)
-endEvent
 
 event OnEvent(string eventName, string data)
     Debug.MessageBox("EVENT: " + eventName + " " + data)
@@ -124,10 +121,6 @@ endEvent
 
 event OnRequest(string query, string parameters, string replyId)
     Debug.MessageBox("REQUEST: " + query + " " + parameters + " " + replyId)
-endEvent
-
-event OnSkyrimPlatformMessage(string source, string text)
-    OnMessage(text)
 endEvent
 
 event OnSkyrimPlatformEvent(string eventName, string source, string data)
@@ -142,9 +135,7 @@ event OnConnected()
 endEvent
 
 event HandleSkyrimPlatformEvent(string messageType, string eventNameOrQuery, string source, string target, string data, string replyID)
-    if messageType == "message"
-        OnSkyrimPlatformMessage(source, data)
-    elseIf messageType == "event"
+    if messageType == "event"
         OnSkyrimPlatformEvent(eventNameOrQuery, source, data)
     elseIf messageType == "request"
         OnSkyrimPlatformRequest(eventNameOrQuery, source, data, replyID)
