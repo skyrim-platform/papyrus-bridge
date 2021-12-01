@@ -85,7 +85,7 @@ export class SkseModEvent {
 }
 
 export class PapyrusBridge {
-    static activeConnections = new Set<string>()
+    activeConnections = new Set<string>()
     connectionName?= ''
     messagesContainerFormId = 0
     questFormId = 0
@@ -129,8 +129,8 @@ export class PapyrusBridge {
                                             if (this.connectionName && ! this.isConnected) {
                                                 this.isConnected = true
                                             }
-                                            if (! PapyrusBridge.activeConnections.has(message.source)) {
-                                                PapyrusBridge.activeConnections.add(message.source)
+                                            if (! this.activeConnections.has(message.source)) {
+                                                this.activeConnections.add(message.source)
                                                 const callbacks = this.messageCallbacks.get('connected')
                                                 if (callbacks)
                                                     callbacks.forEach(callback => callback(message))
