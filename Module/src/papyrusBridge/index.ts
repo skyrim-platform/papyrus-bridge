@@ -85,7 +85,7 @@ export class SkseModEvent {
 }
 
 export class PapyrusBridge {
-    modName?= ''
+    connectionName?= ''
     messagesContainerFormId = 0
     questFormId = 0
     isConnected = false
@@ -100,12 +100,12 @@ export class PapyrusBridge {
     ])
     requestResponsePromises = new Map<string, (message: PapyrusRequest) => void>()
 
-    constructor(modName: string = '') {
-        this.modName = modName
+    constructor(connectionName: string = '') {
+        this.connectionName = connectionName
     }
 
-    public getMod(modName: string) {
-        return new PapyrusBridge(modName)
+    public getConnection(connectionName: string) {
+        return new PapyrusBridge(connectionName)
     }
 
     public listen() {
@@ -122,8 +122,8 @@ export class PapyrusBridge {
                             if (messageType) {
                                 const message = this.parse(messageType, messageText)
                                 // Handle special case: Connection Request
-                                if (this.modName && messageType == 'request' && message.query == skyrimPlatformBridgeConnectionRequestEventName && this.modName == message.source) {
-                                    this.send('response', { data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: message.replyId, source: this.modName, target: message.source })
+                                if (this.connectionName && messageType == 'request' && message.query == skyrimPlatformBridgeConnectionRequestEventName && this.connectionName == message.source) {
+                                    this.send('response', { data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: message.replyId, source: this.connectionName, target: message.source })
                                     if (!this.isConnected) {
                                         this.isConnected = true
                                         const callbacks = this.messageCallbacks.get('connected')
@@ -186,10 +186,10 @@ export class PapyrusBridge {
     public async send(messageType: 'raw', message: MessageToSendToPapyrus): Promise<undefined>
     public async send(messageType: string, message: any): Promise<any>
     public async send(messageType: string, message: any): Promise<any> {
-        // TODO - queue if modName but not isConnected
+        // TODO - queue if connectionName but not isConnected
 
-        const target = message.target ?? this.modName ?? ''
-        const source = message.source ?? this.modName ?? ''
+        const target = message.target ?? this.connectionName ?? ''
+        const source = message.source ?? this.connectionName ?? ''
 
         let data: any
         switch (messageType) {
@@ -216,7 +216,7 @@ export class PapyrusBridge {
         }
 
         // SKSE Mod Event Name (either send globally, or send to specific mod, or it's a reply to a specific message)
-        let skseModEventName = this.modName ? `${skseModEventNamePrefix_ModEvent}${this.modName}` : skseModEventNamePrefix_GlobalEvent
+        let skseModEventName = this.connectionName ? `${skseModEventNamePrefix_ModEvent}${this.connectionName}` : skseModEventNamePrefix_GlobalEvent
         if (messageType == 'response')
             skseModEventName = `${skseModEventNamePrefix_Response}${message.replyId}`
 
@@ -317,6 +317,6 @@ export class PapyrusBridge {
 const defaultInstance = new PapyrusBridge()
 export default defaultInstance
 
-export function getPapyrusBridge(modName: string) {
-    return new PapyrusBridge(modName)
+export function getPapyrusBridge(connectionName: string) {
+    return new PapyrusBridge(connectionName)
 }

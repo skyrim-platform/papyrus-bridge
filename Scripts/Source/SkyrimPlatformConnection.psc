@@ -1,10 +1,10 @@
-scriptName ConnectedToSkyrimPlatform extends ReferenceAlias
+scriptName SkyrimPlatformConnection extends ReferenceAlias
 
 ; BeginRequest()
 ; OnResponse()
 ; timedOut = true
 
-string _modName
+string _connectionName
 bool _connected
 SkyrimPlatformBridge _bridgeAPI
 
@@ -14,13 +14,13 @@ event OnInit()
     ConnectionTimeout = 30.0
     OnSetup()
     _bridgeAPI = SkyrimPlatformBridge.GetPrivateAPI()
-    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ModName, "HandleSkyrimPlatformEvent")
+    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ConnectionName, "HandleSkyrimPlatformEvent")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
 event OnPlayerLoadGame()
     OnSetup()
-    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ModName, "HandleSkyrimPlatformEvent")
+    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ConnectionName, "HandleSkyrimPlatformEvent")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
@@ -35,58 +35,35 @@ function ConnectToSkyrimPlatform(float timeout)
     endIf
 endFunction
 
-; Use this to configure ModName (defaults to name of mod file, e.g. "MyMod" for "MyMod.esp")
+; Use this to configure ConnectionName (defaults to name of the script, e.g. `Foo` for a script named `FooConnection`)
 ;
 ; ```
 ; scriptName MyModEvents extends ConnectedToSkyrimPlatform
 ;
 ; event OnSetup()
-;   ModName = "MyModName"
+;   ConnectionName = "MyConnectionName"
 ; endEvent
 ; ```
 ;
-string property ModName
+string property ConnectionName
     string function get()
-        if ! _modName
-            ; Set 'ModName' to the name of the plugin, e.g. MyMod for MyMod.esp
-            string modFile
-            int formId = GetOwningQuest().GetFormID()
-            int modIndex = Math.RightShift(formId, 24)
-            if modIndex == 0xFE
-                int lightModIndex = Math.LogicalAnd(Math.RightShift(formId, 12), 0xFFF)
-                modFile = Game.GetLightModName(lightModIndex)
-            else
-                modFile = Game.GetModName(modIndex)
-            endIf
-            ; Remove the training .esp/.esm/.esl extension
-            string[] nameParts = StringUtil.Split(modFile, ".")
-            int i = 0
-            while i < nameParts.Length
-                if i == 0
-                    _modName = nameParts[i]
-                elseIf i == nameParts.Length - 1
-                    ; Skip the extension
-                else
-                    ; Allow filenames including .
-                    _modName += "." + nameParts[i]
-                endIf
-                i += 1
-            endWhile
+        if ! _connectionName
+            ; ;;;;; ;
         endIf
-        return _modName
+        return _connectionName
     endFunction
     function set(string value)
-        _modName = value
+        _connectionName = value
     endFunction
 endProperty
 
-; Use this to configure ModName (defaults to name of mod file, e.g. "MyMod" for "MyMod.esp")
+; Use this to configure ConnectionName (defaults to name of mod file, e.g. "MyMod" for "MyMod.esp")
 ;
 ; ```
 ; scriptName MyModEvents extends ConnectedToSkyrimPlatform
 ;
 ; event OnSetup()
-;   ModName = "MyModName"
+;   ConnectionName = "MyConnectionName"
 ; endEvent
 ; ```
 ;
@@ -95,20 +72,20 @@ endEvent
 
 function Send(string eventName, string data = "", string target = "", string source = "")
     if ! target
-        target = ModName
+        target = ConnectionName
     endIf
     if ! source
-        source = ModName
+        source = ConnectionName
     endIf
     _bridgeAPI.SendEventAPI(eventName, source, target, data)
 endFunction
 
 string function Request(string query, string parameters = "", string target = "", string source = "", float waitInterval = 0.5, float timeout = 10.0) ; set back to 0.5 (the 3 interval)
     if ! source
-        source = ModName
+        source = ConnectionName
     endIf
     if ! target
-        target = ModName
+        target = ConnectionName
     endIf
 
     string replyID = _bridgeAPI.GetUniqueReplyID()
