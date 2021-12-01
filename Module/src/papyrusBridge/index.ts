@@ -85,6 +85,7 @@ export class SkseModEvent {
 }
 
 export class PapyrusBridge {
+    static activeConnections = new Set<string>()
     connectionName?= ''
     messagesContainerFormId = 0
     questFormId = 0
@@ -121,26 +122,31 @@ export class PapyrusBridge {
                             const messageType = this.getMessageType(messageText)
                             if (messageType) {
                                 const message = this.parse(messageType, messageText)
-                                // Handle special case: Connection Request
-                                if (this.connectionName && messageType == 'request' && message.query == skyrimPlatformBridgeConnectionRequestEventName && this.connectionName == message.source) {
-                                    this.send('response', { data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: message.replyId, source: this.connectionName, target: message.source })
-                                    if (!this.isConnected) {
-                                        this.isConnected = true
-                                        const callbacks = this.messageCallbacks.get('connected')
-                                        printConsole(`Trigger connected callbacks ${callbacks?.length}`)
-                                        if (callbacks)
-                                            callbacks.forEach(callback => callback(message))
-                                    }
-                                } else if (message) {
-                                    if (this.messageCallbacks.has(messageType)) {
-                                        const callbacks = this.messageCallbacks.get(messageType)
-                                        if (callbacks)
-                                            callbacks.forEach(callback => callback(message))
-                                    }
-                                    if (messageType == 'response' && message.replyId) {
-                                        if (this.requestResponsePromises.has(message.replyId)) {
-                                            this.requestResponsePromises.get(message.replyId)!(message)
-                                            this.requestResponsePromises.delete(message.replyId)
+                                if (message) {
+                                    if (messageType == 'request' && message.query == skyrimPlatformBridgeConnectionRequestEventName) {
+                                        if ((! this.connectionName) || this.connectionName == message.source) {
+                                            this.send('response', { data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: message.replyId, source: this.connectionName, target: message.source })
+                                            if (this.connectionName && ! this.isConnected) {
+                                                this.isConnected = true
+                                            }
+                                            if (! PapyrusBridge.activeConnections.has(message.source)) {
+                                                PapyrusBridge.activeConnections.add(message.source)
+                                                const callbacks = this.messageCallbacks.get('connected')
+                                                if (callbacks)
+                                                    callbacks.forEach(callback => callback(message))
+                                            }
+                                        }
+                                    } else {
+                                        if (this.messageCallbacks.has(messageType)) {
+                                            const callbacks = this.messageCallbacks.get(messageType)
+                                            if (callbacks)
+                                                callbacks.forEach(callback => callback(message))
+                                        }
+                                        if (messageType == 'response' && message.replyId) {
+                                            if (this.requestResponsePromises.has(message.replyId)) {
+                                                this.requestResponsePromises.get(message.replyId)!(message)
+                                                this.requestResponsePromises.delete(message.replyId)
+                                            }
                                         }
                                     }
                                 }
