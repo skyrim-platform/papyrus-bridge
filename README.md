@@ -13,14 +13,14 @@ This makes it really easy!
 - [Download](#-download)
 - [Setup](#%EF%B8%8F-setup)
 - [Quick Start](#-quick-start)
-- [Papyrus Interface](#)
+- [Skyrim Platform Interface](#)
   - [`getConnection`](#)
   - [`onConnected`](#)
   - [`onEvent`](#)
   - [`onRequest`](#)
   - [`send`](#)
   - [`request`](#)
-- [Skyrim Platform Interface](#)
+- [Papyrus Interface](#)
   - [`OnSetup`](#)
   - [`OnConnected`](#)
   - [`OnEvent`](#)
@@ -110,9 +110,9 @@ import { once, Debug } from 'skyrimPlatform'
 
 // Get a connection to your Papyrus code.
 // The connection name should be the same here as in Papyrus.
-const papyrus = getConnection('HelloBridge')
+const connection = getConnection('HelloBridge')
 
-papyrus.onEvent((event) => {
+connection.onEvent((event) => {
   // NOTE! Event names from papyrus.onEvent are ALWAYS LOWERCASE
   if (event.eventName == 'keyboard shortcut pressed') {
     // Note: onEvent can be called in contexts where `Debug.messageBox` does not work.
@@ -136,7 +136,7 @@ You should see the messagebox:
 The keyboard shortcut was pressed!
 ```
 
-# Papyrus Interface
+# Skyrim Platform Interface
 
 ## `getConnection`
 
@@ -153,7 +153,9 @@ Event triggered when the Papyrus connection successfully connects with the Skyri
 ```ts
 import { getConnection } from 'papyrusBridge'
 
-getConnection('MyMod').onConnected(() => {
+const connection = getConnection('MyMod')
+
+connection.onConnected(() => {
   // Do something
 })
 ```
@@ -169,7 +171,9 @@ Events contain `eventName` and `data` properties.
 ```ts
 import { getConnection } from 'papyrusBridge'
 
-getConnection('MyMod').onEvent((event) => {
+const connection = getConnection('MyMod')
+
+connection.onEvent((event) => {
   switch (event.eventName) {
     case 'myEvent': {
       // do something with event.data
@@ -192,7 +196,9 @@ Events contain `query` and `data` properties.
 ```ts
 import { getConnection } from 'papyrusBridge'
 
-getConnection('MyMod').onRequest((request, reply) => {
+const connection = getConnection('MyMod')
+
+connection.onRequest((request, reply) => {
   switch (event.query) {
     case 'playerName': {
       // optionally do something with event.data
@@ -207,9 +213,37 @@ getConnection('MyMod').onRequest((request, reply) => {
 
 ## `send`
 
+Sends an event to Papyrus.
+
+```ts
+import { getConnection } from 'papyrusBridge'
+
+const connection = getConnection('MyMod')
+
+connection.onConnected(() => {
+    connection.send('someEventName', '[optional data]')
+})
+```
+
 ## `request`
 
-# Skyrim Platform Interface
+Makes an asynchronous request to Papyrus to get a response.
+
+```ts
+import { getConnection } from 'papyrusBridge'
+
+const connection = getConnection('MyMod')
+
+connection.onConnected(async () => {
+    const response = await connection.request('some/query', '[optional data]')
+    // optionally do something with response.data
+    once('update', () => {
+        Debug.messageBox(`Response for some/query: ${response.data}`)
+    })
+})
+```
+
+# Papyrus Interface
 
 ## `OnSetup`
 

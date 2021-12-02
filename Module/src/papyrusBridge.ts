@@ -143,7 +143,7 @@ export class PapyrusBridge {
         }
     }
 
-    public sendModEvent(skseModEventName: string, parameterBuilder: (modEvent: any, handle: number) => void) {
+    sendModEvent(skseModEventName: string, parameterBuilder: (modEvent: any, handle: number) => void) {
         once('update', () => {
             let quest: Form | null = null
             if (!this.questFormId) {
@@ -153,7 +153,7 @@ export class PapyrusBridge {
                 }
             }
             if (!quest) {
-                // Todo: cache object (and handle stale errors)
+                // Todo: cache object (and *handle stale errors*)
                 quest = Game.getFormFromFile(skyrimPlatformBridgeQuestId, skyrimPlatformBridgeEsp)
             }
             if (quest) {
@@ -170,11 +170,11 @@ export class PapyrusBridge {
         })
     }
 
-    public send(eventName: string, data?: any, target?: string) {
-        this.sendEvent({ eventName, data, target })
+    public send(eventName: string, data?: any, target?: string, source?: string) {
+        this.sendEvent({ eventName, data, target, source })
     }
 
-    public sendEvent(event: PapyrusEvent) {
+    sendEvent(event: PapyrusEvent) {
         const messageToSend = this._prepareMessageForSending('event', event)
         if (messageToSend) {
             this.sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
@@ -188,13 +188,13 @@ export class PapyrusBridge {
         }
     }
 
-    public async request(query: string, data?: string, target?: string): Promise<PapyrusResponse | undefined> {
+    public async request(query: string, data?: string, target?: string, source?: string): Promise<PapyrusResponse | undefined> {
         return this.makeRequest({
-            query, data, target
+            query, data, target, source
         })
     }
 
-    public async makeRequest(request: PapyrusRequest): Promise<PapyrusResponse | undefined> {
+    async makeRequest(request: PapyrusRequest): Promise<PapyrusResponse | undefined> {
         return new Promise<PapyrusResponse | undefined>(resolve => {
             try {
                 const messageToSend = this._prepareMessageForSending('request', request)
