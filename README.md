@@ -55,26 +55,26 @@ Update `HelloBridge.psc` with the following code:
 ```psc
 scriptName HelloBridge extends SkyrimPlatformConnection
 
-; Let's say we will do something when you press
-; Left Shift + B
+ Let's say we will do something when you press
+ Left Shift + B
 int LEFT_SHIFT_KEY = 42
 int B_KEY = 48
 
 event OnSetup()
-    ; The 'Connection Name' is used to establish a connection
-    ; between Papyrus and Skyrim Platform
-    ConnectionName = "HelloBridge"
+     The 'Connection Name' is used to establish a connection
+     between Papyrus and Skyrim Platform
+    ConnectionName = 'HelloBridge'
 endEvent
 
 event OnConnected()
-    ; Do something when connection to Skyrim Platform is established
+     Do something when connection to Skyrim Platform is established
     RegisterForKey(B_KEY)
 endEvent
 
 event OnKeyDown(int keyCode)
-    if keyCode == B_KEY && Input.IsKeyPressed(LEFT_SHIFT)
-        ; Tell Skyrim Platform about the key press
-        Send("Keyboard Shortcut Presed")
+    if keyCode == B_KEY && Input.IsKeyPressed(LEFT_SHIFT_KEY)
+         Tell Skyrim Platform about the key press
+        Send('Keyboard Shortcut Pressed')
     endIf
 endEvent
 ```
@@ -85,13 +85,15 @@ Add the following to a new or existing `.ts` script in your plugin:
 
 ```ts
 import { getConnection } from "papyrusBridge";
+import { once, Debug } from "skyrimPlatform";
 
 // Get a connection to your Papyrus code.
 // The connection name should be the same here as in Papyrus.
 const papyrus = getConnection("HelloBridge");
 
 papyrus.onEvent((event) => {
-  if (event.eventName == "Keyboard Shortcut Presed") {
+  // NOTE! Event names from papyrus.onEvent are ALWAYS LOWERCASE
+  if (event.eventName == "keyboard shortcut pressed") {
     // Note: onEvent can be called in contexts where `Debug.messageBox` does not work.
     // You can use `once('update')` to be able to `Debug.messageBox`
     once("update", () => {
