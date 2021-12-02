@@ -18,10 +18,6 @@ https://some/nexus/link
 
 Depending on your TypeScript setup, you will also want to open the mod folder and copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
 
-# 🎥
-
-To get started quickly, watch the YouTube tutorial [TODO]
-
 # 🎓
 
 ## Hello, world!
@@ -50,21 +46,28 @@ Add an attached script to the PlayerRef alias, e.g. `HelloBridge`
 
 ### IV. Edit Script
 
-We'll be using `ConnectedToSkyrimPlatform` which is a base script used to simplify communication between _your mod's_ Papyrus and _your mod's_ TypeScript.
+We'll be using `SkyrimPlatformConnection` which is a base script used to simplify communication between _your mod's_ Papyrus and _your mod's_ TypeScript.
 
 Later, we'll look at using the `SkyrimPlatformBridge` Papyrus script which can be used globally from any Papyrus Script.
 
 Update `HelloBridge.psc` with the following code:
 
 ```psc
-scriptName HelloBridge extends ConnectedToSkyrimPlatform
+scriptName HelloBridge extends SkyrimPlatformConnection
 
 ; Let's say we will do something when you press
 ; Left Shift + B
 int LEFT_SHIFT_KEY = 42
 int B_KEY = 48
 
+event OnSetup()
+    ; The 'Connection Name' is used to establish a connection
+    ; between Papyrus and Skyrim Platform
+    ConnectionName = "HelloBridge"
+endEvent
+
 event OnConnected()
+    ; Do something when connection to Skyrim Platform is established
     RegisterForKey(B_KEY)
 endEvent
 
