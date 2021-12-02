@@ -1,5 +1,6 @@
 scriptName SkyrimPlatformBridge extends Quest
 
+string property CurrentlyInstalledVersion auto
 ObjectReference property MessagesContainer auto
 int NextMessageIndex = -1
 Form[] Messages
@@ -74,7 +75,6 @@ Form property SkyrimPlatformBridge_Message66 auto
 Form property SkyrimPlatformBridge_Message67 auto
 Form property SkyrimPlatformBridge_Message68 auto
 Form property SkyrimPlatformBridge_Message69 auto
-string property SkyrimPlatformGenericModEventName = "DEPRECATE_ME" autoReadonly
 string property SkyrimPlatformBridgeCustomEventSkseModEventNamePrefix = "SkyrimPlatformBridge_Event_" autoReadonly
 string property SkyrimPlatformBridgeEventMessageDelimiter = "<||>" autoReadonly
 string property SkyrimPlatformBridgeEventMessagePrefix = "::SKYRIM_PLATFORM_BRIDGE_EVENT::" autoReadonly
@@ -84,11 +84,16 @@ xSkyrimPlatformBridge_Listener[] ListenerScripts
 int NextListenerIndex
 bool property IsReady auto
 
+string function GetCurrentVersion() global
+    return "1.0"
+endFunction
+
 SkyrimPlatformBridge function GetPrivateAPI() global
     return Game.GetFormFromFile(0x800, "SkyrimPlatformBridge.esp") as SkyrimPlatformBridge
 endFunction
 
 event OnInit()
+    CurrentlyInstalledVersion = GetCurrentVersion()
     MessageIsInMessagesContainer = new bool[69]
     MessageLocks = new float[69]
     Messages = new Form[69]

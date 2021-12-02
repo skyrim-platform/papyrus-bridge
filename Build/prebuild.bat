@@ -1,2 +1,2 @@
 robocopy Scripts\Source Source\Scripts /e
-robocopy Module\src Platform\Modules /e
+robocopy Module\src PapyrusBridge /e

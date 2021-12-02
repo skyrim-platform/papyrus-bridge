@@ -11,8 +11,10 @@
     Final="false">
     <Variables>
         <Variable Name="ModName" Value="SkyrimPlatformPapyrusBridge" />
+        <Variable Name="ModsFolder" Value="C:\Users\mrowr\Dropbox\Skyrim\Mods" />
     </Variables>
     <Imports>
+        <Import>@ModsFolder\SKSE64\Scripts\Source</Import>
         <Import>C:\Steam\steamapps\common\Skyrim Special Edition\Data\Scripts\Source</Import>
     </Imports>
     <Folders>
@@ -22,8 +24,9 @@
         <ZipFile Name="@ModName" RootDir="." Compression="deflate">
             <Include>SkyrimPlatformBridge.esp</Include>
             <Match In="Scripts\Source">*.psc</Match>
+            <Match In="Scripts\">*.pex</Match>
             <Match In="Source\Scripts">*.psc</Match>
-            <Match In="Platform\Modules">*.ts</Match>
+            <Match In="PapyrusBridge">*.ts</Match>
         </ZipFile>
     </ZipFiles>
     <PreBuildEvent UseInBuild="true">

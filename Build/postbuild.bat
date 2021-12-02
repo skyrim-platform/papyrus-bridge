@@ -1,4 +1,4 @@
 del /s /f /q Source
-del /s /f /q Platform
+del /s /f /q PapyrusBridge
 rmdir /s /q Source
-rmdir /s /q Platform
+rmdir /s /q PapyrusBridge

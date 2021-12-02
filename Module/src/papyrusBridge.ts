@@ -19,6 +19,10 @@ const skyrimPlatformBridgeJsonDataPrefix = '::SKYRIM_PLATFORM_BRIDGE_JSON::'
 const skyrimPlatformBridgeConnectionRequestQueryName = 'SkyrimPlatformBridge_ConnectionRequest'.toLowerCase()
 const skyrimPlatformBridgeConnectionRequestResponseText = 'CONNECTED'
 
+export function getVersion() {
+    return '1.0'
+}
+
 const messageTypePrefixes = new Map<string, string>([
     [messagePrefix_Event, 'event'],
     [messagePrefix_Request, 'request'],
