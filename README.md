@@ -81,16 +81,16 @@ endEvent
 Add the following to a new or existing `.ts` script in your plugin:
 
 ```ts
-import papyrusBridge from 'papyrusBridge'
+import papyrusBridge from "papyrusBridge";
 
 // Get a bridge to talk to your Papyrus mod by providing
 // the name of the .esp/.esm/.esl (without extension)
-const helloBridge = papyrusBridge.getMod('HelloBridge')
+const helloBridge = papyrusBridge.getMod("HelloBridge");
 
-helloBridge.on('message', message => {
-    if (message.text == 'Keyboard Shortcut Presed')
-        // Debug.messageBox('The keyboard shortcut was pressed!')
-})
+helloBridge.on("message", (message) => {
+  if (message.text == "Keyboard Shortcut Presed")
+    Debug.messageBox("The keyboard shortcut was pressed!");
+});
 ```
 
 > 💡 If `'papyrusBridge'` does not autocomplete or your script does not compile, copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
