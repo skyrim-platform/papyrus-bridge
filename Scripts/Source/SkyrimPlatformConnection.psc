@@ -119,15 +119,15 @@ endFunction
 event OnEvent(string eventName, string data)
 endEvent
 
-event OnRequest(string query, string data, string replyId)
+event OnRequest(string replyId, string query, string data)
 endEvent
 
 event OnSkyrimPlatformEvent(string eventName, string source, string data)
     OnEvent(eventName, data)
 endEvent
 
-event OnSkyrimPlatformRequest(string query, string source, string data, string replyId)
-    OnRequest(query, data, replyId)
+event OnSkyrimPlatformRequest(string replyId, string query, string data, string source)
+    OnRequest(replyId, query, data)
 endEvent
 
 event OnConnected()
@@ -137,7 +137,7 @@ event HandleSkyrimPlatformEvent(string messageType, string eventNameOrQuery, str
     if messageType == "event"
         OnSkyrimPlatformEvent(eventNameOrQuery, source, data)
     elseIf messageType == "request"
-        OnSkyrimPlatformRequest(eventNameOrQuery, source, data, replyID)
+        OnSkyrimPlatformRequest(replyId, eventNameOrQuery, data, source)
     endIf
 endEvent
 
