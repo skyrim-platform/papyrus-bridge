@@ -6,7 +6,7 @@
     Output="Scripts" 
     Optimize="false" 
     Release="false" 
-    Zip="false"
+    Zip="true"
     Package="false"
     Final="false">
     <Variables>
@@ -20,16 +20,16 @@
     </Folders>
     <ZipFiles Output="Build">
         <ZipFile Name="@ModName" RootDir="." Compression="deflate">
-            <Include>@ModName.esp</Include>
-            <Include NoRecurse="true">*.bsa</Include>
+            <Include>SkyrimPlatformBridge.esp</Include>
             <Match In="Scripts\Source">*.psc</Match>
+            <Match In="Source\Scripts">*.psc</Match>
+            <Match In="Platform\Modules">*.ts</Match>
         </ZipFile>
     </ZipFiles>
     <PreBuildEvent UseInBuild="true">
-        <Command>robocopy Scripts\Source Source\Scripts</Command>
+        <Command>Build\prebuild.bat</Command>
     </PreBuildEvent>
     <PostBuildEvent UseInBuild="true">
-        <Command>del /s /f /q Source</Command>
-        <Command>rmdir /s /q Source</Command>
+        <Command>Build\postbuild.bat</Command>
     </PostBuildEvent>
 </PapyrusProject>
