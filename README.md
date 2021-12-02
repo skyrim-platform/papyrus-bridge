@@ -10,15 +10,19 @@ But communication between Papyrus and Skyrim Platform is not easy.
 
 This makes it really easy!
 
-# 💾
+- [Download](#-Download)
+- [Setup](#-Setup)
+- [Quick Start](#-Quick-Start)
 
-To install, simply download using your favorite mod manager.
+# 💾 Download
+
+Download the mod using your favorite mod manager:
 
 https://some/nexus/link
 
-Depending on your TypeScript setup, you will also want to open the mod folder and copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
+# ⚙️ Setup
 
-# 🎓
+# 🎓 Quick Start
 
 ## Hello, world!
 
@@ -109,4 +113,10 @@ papyrus.onEvent((event) => {
 
 Run the game and press Left Shift + B
 
-You should see the
+You should see the messagebox:
+
+```
+The keyboard shortcut was pressed!
+```
+
+#
