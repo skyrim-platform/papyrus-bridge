@@ -76,25 +76,25 @@ Update `HelloBridge.psc` with the following code:
 ```psc
 scriptName HelloBridge extends SkyrimPlatformConnection
 
- Let's say we will do something when you press
- Left Shift + B
+; Let's say we will do something when you press
+; Left Shift + B
 int LEFT_SHIFT_KEY = 42
 int B_KEY = 48
 
 event OnSetup()
-     The 'Connection Name' is used to establish a connection
-     between Papyrus and Skyrim Platform
+    ; The 'Connection Name' is used to establish a connection
+    ; between Papyrus and Skyrim Platform
     ConnectionName = 'HelloBridge'
 endEvent
 
 event OnConnected()
-     Do something when connection to Skyrim Platform is established
+    ; Do something when connection to Skyrim Platform is established
     RegisterForKey(B_KEY)
 endEvent
 
 event OnKeyDown(int keyCode)
     if keyCode == B_KEY && Input.IsKeyPressed(LEFT_SHIFT_KEY)
-         Tell Skyrim Platform about the key press
+        ; Tell Skyrim Platform about the key press
         Send('Keyboard Shortcut Pressed')
     endIf
 endEvent
