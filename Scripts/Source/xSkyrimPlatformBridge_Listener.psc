@@ -58,6 +58,7 @@ function ListenForReply(string replyID)
 endFunction
 
 event OnReply(string replyID, string response)
+    ; ; Debug.MessageBox("!!!!!! ******* Papyrus Get Response for " + replyID + " : '" + response + "'")
     int replyIndex = _replyIDs.Find(replyID)
     if replyIndex != -1
         UnregisterForModEvent("SkyrimPlatformBridge_Response_" + replyID)

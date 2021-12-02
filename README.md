@@ -1,6 +1,6 @@
 # Papyrus <--> Skyrim Platform Bridge
 
-> Communicate *easily* between Papyrus and Skyrim Platform
+> Communicate _easily_ between Papyrus and Skyrim Platform
 
 # 🌉
 
@@ -32,7 +32,7 @@ A common use-case nowadays for using Papyrus alongside Skyrim Platform is:
 
 In this example, we'll capture a keyboard event and send it to Skyrim Platform.
 
-> 💡 As of 2021, Skyrim Platform supports [listening for Papyrus Events](https://github.com/skyrim-multiplayer/skymp/blob/main/docs/skyrim_platform/events.md) triggered on objects in the game, but it is very slow and not recommended at this time. 
+> 💡 As of 2021, Skyrim Platform supports [listening for Papyrus Events](https://github.com/skyrim-multiplayer/skymp/blob/main/docs/skyrim_platform/events.md) triggered on objects in the game, but it is very slow and not recommended at this time.
 
 ### I. Create a Skyrim Mod (.esp)
 
@@ -50,7 +50,7 @@ Add an attached script to the PlayerRef alias, e.g. `HelloBridge`
 
 ### IV. Edit Script
 
-We'll be using `ConnectedToSkyrimPlatform` which is a base script used to simplify communication between *your mod's* Papyrus and *your mod's* TypeScript.
+We'll be using `ConnectedToSkyrimPlatform` which is a base script used to simplify communication between _your mod's_ Papyrus and _your mod's_ TypeScript.
 
 Later, we'll look at using the `SkyrimPlatformBridge` Papyrus script which can be used globally from any Papyrus Script.
 
@@ -89,7 +89,7 @@ const helloBridge = papyrusBridge.getMod('HelloBridge')
 
 helloBridge.on('message', message => {
     if (message.text == 'Keyboard Shortcut Presed')
-        Debug.messageBox('The keyboard shortcut was pressed!')
+        // Debug.messageBox('The keyboard shortcut was pressed!')
 })
 ```
 

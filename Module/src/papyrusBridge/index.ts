@@ -32,12 +32,6 @@ export interface PapyrusEvent {
     data?: any
 }
 
-export interface PapyrusMessage {
-    text: string,
-    source?: string,
-    target?: string
-}
-
 export interface PapyrusResponse {
     source: string,
     target: string,
@@ -47,7 +41,7 @@ export interface PapyrusResponse {
 
 export interface PapyrusRequest {
     query: string,
-    source: string,
+    source?: string,
     target?: string,
     data?: any,
     replyId?: string
@@ -63,13 +57,13 @@ interface PapyrusMessageHandler {
     receiveEvents: boolean
 }
 
-export interface MessageToSendToPapyrus {
-    modEventName?: string,
+interface MessageToSendToPapyrus {
+    skseModEventName: string,
     messageType: string,
     eventNameOrQuery: string,
-    source?: string,
-    target?: string,
-    data?: string,
+    source: string,
+    target: string,
+    dataText: string,
     replyId?: string
 }
 
@@ -172,22 +166,72 @@ export class PapyrusBridge {
         })
     }
 
-    public async send(messageType: 'event', message: PapyrusEvent): Promise<undefined>
-    public async send(messageType: 'request', message: PapyrusRequest): Promise<PapyrusResponse>
-    public async send(messageType: 'response', message: PapyrusResponse): Promise<undefined>
-    public async send(messageType: string, message: any): Promise<any>
-    public async send(messageType: string, message: any): Promise<any> {
-        // TODO - queue if connectionName but not isConnected
+    public send(eventName: string, data?: any, target?: string) {
+        this.sendEvent({ eventName, data, target })
+    }
 
+    public sendEvent(event: PapyrusEvent) {
+        const messageToSend = this._prepareMessageForSending('event', event)
+        if (messageToSend) {
+            this.sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
+                modEvent.pushString(handle, messageToSend.messageType)
+                modEvent.pushString(handle, messageToSend.eventNameOrQuery)
+                modEvent.pushString(handle, messageToSend.source)
+                modEvent.pushString(handle, messageToSend.target)
+                modEvent.pushString(handle, messageToSend.dataText)
+                modEvent.pushString(handle, messageToSend.replyId)
+            })
+        }
+    }
+
+    public async request(query: string, data?: string, target?: string): Promise<PapyrusResponse | undefined> {
+        return this.makeRequest({
+            query, data, target
+        })
+    }
+
+    public async makeRequest(request: PapyrusRequest): Promise<PapyrusResponse | undefined> {
+        return new Promise<PapyrusResponse | undefined>(resolve => {
+            try {
+                const messageToSend = this._prepareMessageForSending('request', request)
+                if (messageToSend) {
+                    if (! messageToSend.replyId) messageToSend.replyId = this.getUniqueReplyId()
+                    this.requestResponsePromises.set(messageToSend.replyId, resolve)
+                    this.sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
+                        modEvent.pushString(handle, messageToSend.messageType)
+                        modEvent.pushString(handle, messageToSend.eventNameOrQuery)
+                        modEvent.pushString(handle, messageToSend.source)
+                        modEvent.pushString(handle, messageToSend.target)
+                        modEvent.pushString(handle, messageToSend.dataText)
+                        modEvent.pushString(handle, messageToSend.replyId)
+                    })
+                } else {
+                    resolve(undefined)
+                }
+            } catch {
+                resolve(undefined)
+            }
+        })
+    }
+
+    _sendResponse(response: PapyrusResponse) {
+        const messageToSend = this._prepareMessageForSending('response', response)
+        if (messageToSend) {
+            this.sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
+                modEvent.pushString(handle, messageToSend.replyId)
+                modEvent.pushString(handle, messageToSend.dataText)
+            })
+        }
+    }
+
+    _prepareMessageForSending(messageType: string, message: any): MessageToSendToPapyrus | undefined {
         const target = message.target ?? this.connectionName ?? ''
 
         if (! target) {
             once('update', () => {
                 printConsole(`[PapyrusBridge] Tried sending event to null target ${JSON.stringify(message)}`)
             })
-            return new Promise<undefined>(resolve => {
-                resolve(undefined)
-            })
+            return
         }
 
         const source = message.source ?? this.connectionName ?? ''
@@ -213,48 +257,11 @@ export class PapyrusBridge {
             case 'request': { eventNameOrQuery = message.query; break }
         }
 
-        // SKSE Mod Event Name (either send globally, or send to specific mod, or it's a reply to a specific message)
         let skseModEventName = `${skseModEventNamePrefix_ModEvent}${target}`
         if (messageType == 'response')
             skseModEventName = `${skseModEventNamePrefix_Response}${message.replyId}`
-
-        let replyId = message.replyId
-        if (!replyId && messageType == 'request')
-            replyId = this.getUniqueReplyId()
-
-        if (messageType == 'response') {
-            return new Promise<undefined>(resolve => {
-                this.sendModEvent(skseModEventName, (modEvent, handle) => {
-                    modEvent.pushString(handle, replyId)
-                    modEvent.pushString(handle, dataText)
-                })
-                resolve(undefined)
-            })
-        } else if (messageType == 'request') {
-            return new Promise<PapyrusResponse>(resolve => {
-                this.requestResponsePromises.set(message.replyId, resolve) // <--- store Promise
-                this.sendModEvent(skseModEventName, (modEvent, handle) => {
-                    modEvent.pushString(handle, messageType)
-                    modEvent.pushString(handle, eventNameOrQuery)
-                    modEvent.pushString(handle, source)
-                    modEvent.pushString(handle, target)
-                    modEvent.pushString(handle, dataText)
-                    modEvent.pushString(handle, replyId)
-                })
-            })
-        } else {
-            return new Promise<undefined>(resolve => {
-                this.sendModEvent(skseModEventName, (modEvent, handle) => {
-                    modEvent.pushString(handle, messageType)
-                    modEvent.pushString(handle, eventNameOrQuery)
-                    modEvent.pushString(handle, source)
-                    modEvent.pushString(handle, target)
-                    modEvent.pushString(handle, dataText)
-                    modEvent.pushString(handle, replyId)
-                })
-                resolve(undefined)
-            })
-        }
+        
+        return { skseModEventName, messageType, eventNameOrQuery, source, target, dataText, replyId: message.replyId }
     }
 
     parse(messageType: 'event', message: string): PapyrusEvent | undefined
@@ -305,9 +312,9 @@ export class PapyrusBridge {
         } else {
             this.requestCallbacks.forEach(callback => {
                 callback(request, (data: any) => {
-                    this.send('response', {
-                        replyId: request.replyId,
-                        target: request.source,
+                    this._sendResponse({
+                        replyId: request.replyId!,
+                        target: request.source!,
                         source: this.connectionName ?? '',
                         data: data
                     })
@@ -318,13 +325,13 @@ export class PapyrusBridge {
 
     _onConnectionRequest(request: PapyrusRequest) {
         if ((! this.connectionName) || this.connectionName == request.source) {
-            this.send('response', { data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: request.replyId, source: this.connectionName, target: request.source })
+            this._sendResponse({ data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: request.replyId!, source: this.connectionName!, target: request.source! })
             if (this.connectionName && ! this.isConnected) {
                 this.isConnected = true
             }
-            if (! this.activeConnections.has(request.source)) {
-                this.activeConnections.add(request.source)
-                this.connectionCallbacks.forEach(callback => callback(request.source))
+            if (! this.activeConnections.has(request.source!)) {
+                this.activeConnections.add(request.source!)
+                this.connectionCallbacks.forEach(callback => callback(request.source!))
             }
         }
     }
@@ -351,6 +358,10 @@ export class PapyrusBridge {
 const defaultInstance = new PapyrusBridge()
 export default defaultInstance
 
-export function getPapyrusBridge(connectionName: string) {
+export function getConnection(connectionName: string) {
+    return new PapyrusBridge(connectionName)
+}
+
+export function getPapyrusConnection(connectionName: string) {
     return new PapyrusBridge(connectionName)
 }

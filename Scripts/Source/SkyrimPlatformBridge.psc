@@ -184,7 +184,7 @@ function SendEvent(string eventName, string source, string target, string data, 
 endFunction
 
 function Reply(string eventName, string source, string target, string data, string replyId) global
-    GetPrivateAPI().ReplyAPI(eventName, source, target, data, replyID)
+    GetPrivateAPI().ReplyAPI(data, replyID)
 endFunction
 
 function ListenForEvent(Alias aliasListener, string eventName, string callbackFunction = "") global
@@ -250,12 +250,12 @@ function SendEventAPI(string eventName, string source, string target, string dat
     SendRawMessageAPI(eventText)
 endFunction
 
-function ReplyAPI(string eventName, string source, string target, string data, string replyId)
+function ReplyAPI(string replyId, string data)
     string[] eventParts = new string[6]
     eventParts[0] = SkyrimPlatformBridgeResponseMessagePrefix
-    eventParts[1] = eventName
-    eventParts[2] = source
-    eventParts[3] = target
+    eventParts[1] = ""
+    eventParts[2] = ""
+    eventParts[3] = ""
     eventParts[4] = replyID
     eventParts[5] = data
     string eventText = ""
