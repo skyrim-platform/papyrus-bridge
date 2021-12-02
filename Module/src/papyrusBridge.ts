@@ -114,7 +114,7 @@ export class PapyrusBridge {
         this.eventCallbacks.push(callback)
     }
 
-    public onConnection(callback: (source: string) => void) {
+    public onConnected(callback: (source: string) => void) {
         this.listen()
         this.connectionCallbacks.push(callback)
     }
@@ -312,7 +312,7 @@ export class PapyrusBridge {
 
     _onRequest(request: PapyrusRequest) {
         if (request.query == skyrimPlatformBridgeConnectionRequestQueryName) {
-            this._onConnectionRequest(request)
+            this._onConnectedRequest(request)
         } else {
             this.requestCallbacks.forEach(callback => {
                 callback(request, (data: any) => {
@@ -327,7 +327,7 @@ export class PapyrusBridge {
         }
     }
 
-    _onConnectionRequest(request: PapyrusRequest) {
+    _onConnectedRequest(request: PapyrusRequest) {
         if ((! this.connectionName) || this.connectionName == request.source) {
             this._sendResponse({ data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: request.replyId!, source: this.connectionName!, target: request.source! })
             if (this.connectionName && ! this.isConnected) {

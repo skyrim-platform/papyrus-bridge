@@ -15,17 +15,19 @@ This makes it really easy!
 - [Quick Start](#-quick-start)
 - [Papyrus Interface](#)
   - [`getConnection`](#)
-  - [`onConnection`](#)
+  - [`onConnected`](#)
   - [`onEvent`](#)
   - [`onRequest`](#)
   - [`send`](#)
   - [`request`](#)
 - [Skyrim Platform Interface](#)
-  - [``](#)
-  - [``](#)
-  - [``](#)
-  - [``](#)
-  - [``](#)
+  - [`OnSetup`](#)
+  - [`OnConnected`](#)
+  - [`OnEvent`](#)
+  - [`OnRequest`](#)
+  - [`Reply`](#)
+  - [`Send`](#)
+  - [`Request`](#)
 
 # 💾 Download
 
@@ -34,6 +36,8 @@ Download the mod using your favorite mod manager:
 https://some/nexus/link
 
 # ⚙️ Setup
+
+xxx TODO xxx
 
 # 🎓 Quick Start
 
@@ -101,23 +105,23 @@ endEvent
 Add the following to a new or existing `.ts` script in your plugin:
 
 ```ts
-import { getConnection } from "papyrusBridge";
-import { once, Debug } from "skyrimPlatform";
+import { getConnection } from 'papyrusBridge'
+import { once, Debug } from 'skyrimPlatform'
 
 // Get a connection to your Papyrus code.
 // The connection name should be the same here as in Papyrus.
-const papyrus = getConnection("HelloBridge");
+const papyrus = getConnection('HelloBridge')
 
 papyrus.onEvent((event) => {
   // NOTE! Event names from papyrus.onEvent are ALWAYS LOWERCASE
-  if (event.eventName == "keyboard shortcut pressed") {
+  if (event.eventName == 'keyboard shortcut pressed') {
     // Note: onEvent can be called in contexts where `Debug.messageBox` does not work.
     // You can use `once('update')` to be able to `Debug.messageBox`
-    once("update", () => {
-      Debug.messageBox("The keyboard shortcut was pressed!");
-    });
+    once('update', () => {
+      Debug.messageBox('The keyboard shortcut was pressed!')
+    })
   }
-});
+})
 ```
 
 > 💡 If `'papyrusBridge'` does not autocomplete or your script does not compile, copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
@@ -132,4 +136,91 @@ You should see the messagebox:
 The keyboard shortcut was pressed!
 ```
 
-#
+# Papyrus Interface
+
+## `getConnection`
+
+Use `getConnection` to get an instance of `PapyrusBridge` which is configured to communicate with an instance of `SkyrimPlatformConnection` on the Papyrus side of things.
+
+```ts
+// TODO
+```
+
+## `onConnected`
+
+Event triggered when the Papyrus connection successfully connects with the Skyrim Platform connection
+
+```ts
+import { getConnection } from 'papyrusBridge'
+
+getConnection('MyMod').onConnected(() => {
+  // Do something
+})
+```
+
+## `onEvent`
+
+Received events send by Papyrus via `Send()`.
+
+Events contain `eventName` and `data` properties.
+
+> ❗ IMPORTANT: The `eventName` will ALWAYS BE IN LOWERCASE.
+
+```ts
+import { getConnection } from 'papyrusBridge'
+
+getConnection('MyMod').onEvent((event) => {
+  switch (event.eventName) {
+    case 'myEvent': {
+      // do something with event.data
+      break
+    }
+  }
+})
+```
+
+## `onRequest`
+
+Received requests send by Papryrus via `Request()`
+
+You should `reply()` to these requests!
+
+Events contain `query` and `data` properties.
+
+> ❗ IMPORTANT: The `query` will ALWAYS BE IN LOWERCASE.
+
+```ts
+import { getConnection } from 'papyrusBridge'
+
+getConnection('MyMod').onRequest((request, reply) => {
+  switch (event.query) {
+    case 'playerName': {
+      // optionally do something with event.data
+      once('update', () => {
+          reply(Game.getPlayer()?.getBaseObject()?.getName())
+      })
+      break
+    }
+  }
+})
+```
+
+## `send`
+
+## `request`
+
+# Skyrim Platform Interface
+
+## `OnSetup`
+
+## `OnConnected`
+
+## `OnEvent`
+
+## `OnRequest`
+
+## `Reply`
+
+## `Send`
+
+## `Request`
