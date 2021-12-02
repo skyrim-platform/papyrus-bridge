@@ -10,9 +10,22 @@ But communication between Papyrus and Skyrim Platform is not easy.
 
 This makes it really easy!
 
-- [Download](#-Download)
-- [Setup](#-Setup)
-- [Quick Start](#-Quick-Start)
+- [Download](#-download)
+- [Setup](#%EF%B8%8F-setup)
+- [Quick Start](#-quick-start)
+- [Papyrus Interface](#)
+  - [`getConnection`](#)
+  - [`onConnection`](#)
+  - [`onEvent`](#)
+  - [`onRequest`](#)
+  - [`send`](#)
+  - [`request`](#)
+- [Skyrim Platform Interface](#)
+  - [``](#)
+  - [``](#)
+  - [``](#)
+  - [``](#)
+  - [``](#)
 
 # 💾 Download
 
