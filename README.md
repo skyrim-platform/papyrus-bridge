@@ -84,15 +84,20 @@ endEvent
 Add the following to a new or existing `.ts` script in your plugin:
 
 ```ts
-import papyrusBridge from "papyrusBridge";
+import { getConnection } from "papyrusBridge";
 
-// Get a bridge to talk to your Papyrus mod by providing
-// the name of the .esp/.esm/.esl (without extension)
-const helloBridge = papyrusBridge.getMod("HelloBridge");
+// Get a connection to your Papyrus code.
+// The connection name should be the same here as in Papyrus.
+const papyrus = getConnection("HelloBridge");
 
-helloBridge.on("message", (message) => {
-  if (message.text == "Keyboard Shortcut Presed")
-    Debug.messageBox("The keyboard shortcut was pressed!");
+papyrus.onEvent((event) => {
+  if (event.eventName == "Keyboard Shortcut Presed") {
+    // Note: onEvent can be called in contexts where `Debug.messageBox` does not work.
+    // You can use `once('update')` to be able to `Debug.messageBox`
+    once("update", () => {
+      Debug.messageBox("The keyboard shortcut was pressed!");
+    });
+  }
 });
 ```
 
@@ -101,3 +106,5 @@ helloBridge.on("message", (message) => {
 ### VI: Run the Game!
 
 Run the game and press Left Shift + B
+
+You should see the
