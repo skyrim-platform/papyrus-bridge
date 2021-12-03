@@ -210,6 +210,35 @@ connection.onConnected(() => {
 })
 ```
 
+### Listening to all Skyrim Platform events / requests
+
+If you want to listen to ALL events which are sent to ANY Skyrim Platform connection, you can register callbacks on the `papyrusBridge` object:
+
+```ts
+import papyrusBridge, { getConnection } from 'papyrusBridge'
+
+// Regular connection code
+const connection = getConnection('MyMod')
+connection.onConnected(() => {
+  // Do something
+})
+
+// Listen for events on ANY connection:
+papyrusBridge.onConnection(connectionName => {
+  // the connectionName is the connection that is now connected
+})
+papyrusBridge.onEvent(event => {
+  // you can check event.target to get the name of the connection which this
+  // event is intended for (or event.source to get the name of the connection)
+  // this event originated from
+})
+papyrusBridge.onRequest(request => {
+  // you can check request.target to get the name of the connection which this
+  // event is intended for (or request.source to get the name of the connection)
+  // this event originated from
+})
+```
+
 ## `onEvent`
 
 Received events send by Papyrus via `Send()`.
