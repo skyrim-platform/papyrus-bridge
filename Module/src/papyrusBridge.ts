@@ -91,7 +91,9 @@ export class PapyrusBridge {
     }
 
     public getConnection(connectionName: string) {
-        return new PapyrusBridge(connectionName.toLowerCase())
+        const connection = new PapyrusBridge(connectionName.toLowerCase())
+        connection.listen()
+        return connection
     }
 
     public getConnectionName() {
@@ -354,9 +356,9 @@ const defaultInstance = new PapyrusBridge()
 export default defaultInstance
 
 export function getConnection(connectionName: string) {
-    return new PapyrusBridge(connectionName)
+    return defaultInstance.getConnection(connectionName)
 }
 
 export function getPapyrusConnection(connectionName: string) {
-    return new PapyrusBridge(connectionName)
+    return defaultInstance.getConnection(connectionName)
 }

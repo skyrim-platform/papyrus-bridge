@@ -13,6 +13,7 @@ This makes it really easy!
 - [Download](#-download)
 - [Setup](#%EF%B8%8F-setup)
 - [Quick Start](#-quick-start)
+- [Events and Requests](#events-and-requests)
 - [Skyrim Platform Interface](#)
   - [`getConnection`](#)
   - [`onConnected`](#)
@@ -30,16 +31,31 @@ This makes it really easy!
   - [`Request`](#)
   - [`SkyrimPlatformBridge`](#)
     - [`SendEvent`](#)
-    - [`Reply`](#)
-    - [`ListenForEvents`](#)
+    - [`Request`](#)
 
 # 💾 Download
 
-x `TODO`
+Download the `SkyrimPlatformPapyrusBridge` using your favorite mod manager:
+
+## https://nexus...
+
+> Optionally, download the example mod to get started!
 
 # ⚙️ Setup
 
-x
+After downloading the mod, go ahead and open the directory where it was installed to.
+
+You will find a `PapyrusBridge` folder containing a `papyrusBridge.ts` file.
+
+This is the module you will be using to talk to Papyrus from Skyrim Platform.
+
+If you have a custom modules setup, point to this module from your `tsconfig.json`
+
+If you are using the typical Skyrim Platform plugin setup, copy this file into:
+
+`<Your Skyrim Special Edition Folder>\Data\Platform\Modules\`
+
+This will allow you to use it from your Skyrim Platform scripts.
 
 # 🎓 Quick Start
 
@@ -85,8 +101,11 @@ int B_KEY = 48
 
 event OnSetup()
     ; The 'Connection Name' is used to establish a connection
-    ; between Papyrus and Skyrim Platform
-    ConnectionName = 'HelloBridge'
+    ; between Papyrus and Skyrim Platform.
+    ;
+    ; Manually configuring this is optional.
+    ; Default: Name of the Papyrus script, e.g. HelloBridge
+    ConnectionName = "HelloBridge"
 endEvent
 
 event OnConnected()
@@ -97,7 +116,16 @@ endEvent
 event OnKeyDown(int keyCode)
     if keyCode == B_KEY && Input.IsKeyPressed(LEFT_SHIFT_KEY)
         ; Tell Skyrim Platform about the key press
-        Send('Keyboard Shortcut Pressed')
+        ;
+        ; This sends an event.
+        ; You can provide an event name and optionally an additional string of data.
+        ; By default the event is sent to the "HelloBridge" connection,
+        ; but you can specify a target parameter to target a different connection.
+        Send("Keyboard Shortcut Pressed")
+
+        ; In addition to 'Send' events (which do not return a response)
+        ; you can use 'Request' to actually get a response from SkyrimPlatform
+        ; e.g. Request("Name of some query")
     endIf
 endEvent
 ```
@@ -124,6 +152,14 @@ connection.onEvent((event) => {
     })
   }
 })
+
+// Example of replying to Request() calls from Papyrus:
+// connection.onRequest((request, reply) => {
+//   if (request.query == 'this will be lowercase')
+//     reply("Something")
+//   else
+//     reply("Something else")
+// })
 ```
 
 > 💡 If `'papyrusBridge'` does not autocomplete or your script does not compile, copy the `Platform\Modules\papyrusBridge.ts` file from the downloaded mod to `Skyrim Special Edition\Data\Platform\Modules\`
@@ -138,6 +174,15 @@ You should see the messagebox:
 The keyboard shortcut was pressed!
 ```
 
+# Events and Requests
+
+`SkyrimPlatformPapyrusBridge` has 2 main concepts for communication:
+
+- **Events**: _Fire & Forget! These send off a message from SP <--> Papyrus_
+- **Requests**: _Get a response! These allow you to get responses from SP <--> Papyrus_
+
+You'll see in the documentation below that both Skyrim Platform and Papyrus provide similar functions for sending/receiving Events and Requests.
+
 # Skyrim Platform Interface
 
 ## `getConnection`
@@ -145,7 +190,9 @@ The keyboard shortcut was pressed!
 Use `getConnection` to get an instance of `PapyrusBridge` which is configured to communicate with an instance of `SkyrimPlatformConnection` on the Papyrus side of things.
 
 ```ts
-// TODO
+import { getConnection } from 'papyrusBridge'
+
+const connection = getConnection('MyMod')
 ```
 
 ## `onConnected`
@@ -209,6 +256,10 @@ connection.onRequest((request, reply) => {
       })
       break
     }
+    default {
+      reply('You should always reply with something')
+      break
+    }
   }
 })
 ```
@@ -231,7 +282,9 @@ connection.onConnected(() => {
 > To receive a `send()` event on Papyrus side:
 >
 > ```psc
-> ;
+> event OnEvent(string eventName, string data)
+>   Debug.MessageBox("Received event!")
+> endEvent
 > ```
 
 ## `request`
@@ -255,21 +308,87 @@ connection.onConnected(async () => {
 > To response to a `request()` on Papyrus side:
 >
 > ```psc
-> ;
+> event OnRequest(string replyId, string query, string data)
+>   Reply(replyId, "This is the response to this query")
+> endEvent
 > ```
 
 # Papyrus Interface
 
+## `extends SkyrimPlatformConnection`
+
+To implement a script which is connected to Skyrim Platform, make an **Alias** and have it extend `SkyrimPlatformConnection`
+
+```psc
+scriptName MyConnection extends SkyrimPlatformConnection
+```
+
+You should **NOT** override these events:
+
+- `OnInit()`
+- `OnPlayerLoadGame()`
+
+Instead, see `OnSetup` below
+
 ## `OnSetup`
+
+Whenever this connection Alias is initialized -OR- the game is reloaded, `OnSetup()` is invoked.
+
+You can use this to perform any script setup as well as providing a manual configuration for your `ConnectionName`
+
+```psc
+scriptName MyScript extends SkyrimPlatformConnection
+
+event OnSetup()
+  ConnectionName = "SomeConnectionName"
+endEvent
+```
+
+By default, `ConnectionName` defaults to the name of the script, e.g. `MyScript` in the example above.
 
 ## `OnConnected`
 
+Event executed when a Papyrus connection has successfully connected to its Skyrim Platform counterpart.
+
+This will **never** fire if you do not `getConnection('TheConnectioName')` from Skyrim Platform.
+
 ## `OnEvent`
+
+```psc
+event OnEvent(string eventName, string data)
+  Debug.MessageBox("Received event!")
+endEvent
+```
 
 ## `OnRequest`
 
+```psc
+event OnRequest(string replyId, string query, string data)
+  Reply(replyId, "This is the response to this query")
+endEvent
+```
+
 ## `Reply`
+
+```psc
+event OnRequest(string replyId, string query, string data)
+  Reply(replyId, "This is the response to this query")
+endEvent
+```
 
 ## `Send`
 
+```psc
+event OnConnected()
+  Send("Some Event Name", "[Optional Data Parameter]")
+endEvent
+```
+
 ## `Request`
+
+```psc
+event OnConnected()
+  string response = Request("Some Query Name", "[Optional Data Parameter]")
+  Debug.MessageBox("Received response: " + response)
+endEvent
+```
