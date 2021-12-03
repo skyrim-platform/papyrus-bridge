@@ -15,23 +15,20 @@ This makes it really easy!
 - [Quick Start](#-quick-start)
 - [Events and Requests](#events-and-requests)
 - [Skyrim Platform Interface](#)
-  - [`getConnection`](#)
-  - [`onConnected`](#)
-  - [`onEvent`](#)
-  - [`onRequest`](#)
-  - [`send`](#)
-  - [`request`](#)
-- [Papyrus Interface](#)
-  - [`OnSetup`](#)
-  - [`OnConnected`](#)
-  - [`OnEvent`](#)
-  - [`OnRequest`](#)
-  - [`Reply`](#)
-  - [`Send`](#)
-  - [`Request`](#)
-  - [`SkyrimPlatformBridge`](#)
-    - [`SendEvent`](#)
-    - [`Request`](#)
+  - [`getConnection`](#getconnection)
+  - [`onConnected`](#onconnected)
+  - [`onEvent`](#onevent)
+  - [`onRequest`](#onrequest)
+  - [`send`](#send)
+  - [`request`](#request)
+- [Papyrus Interface](#papyrus-interface)
+  - [`OnSetup`](#onsetup)
+  - [`OnConnected`](#onconnected-1)
+  - [`OnEvent`](#onevent-1)
+  - [`OnRequest`](#onrequest-1)
+  - [`Reply`](#reply)
+  - [`Send`](#send-1)
+  - [`Request`](#request-1)
 
 # 💾 Download
 
@@ -87,7 +84,7 @@ Add an attached script to the PlayerRef alias, e.g. `HelloBridge`
 
 We'll be using `SkyrimPlatformConnection` which is a base script used to simplify communication between _your mod's_ Papyrus and _your mod's_ TypeScript.
 
-Later, we'll look at using the `SkyrimPlatformBridge` Papyrus script which can be used globally from any Papyrus Script.
+> _Later, I'll add some documentation demonstrating using the raw `SkyrimPlatformBridge` Papyrus script which can be used globally from any Papyrus Script (not recommended)_
 
 Update `HelloBridge.psc` with the following code:
 
