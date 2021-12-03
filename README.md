@@ -280,7 +280,10 @@ const connection = getConnection('MyMod')
 connection.onRequest((request, reply) => {
   switch (event.query) {
     case 'playerName': {
-      // optionally do something with event.data
+      // Optionally do something with event.data
+      //
+      // Using once('update') here to get a context
+      // in which `Game.getPlayer()` can be used
       once('update', () => {
           reply(Game.getPlayer()?.getBaseObject()?.getName())
       })
