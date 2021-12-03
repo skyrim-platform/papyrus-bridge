@@ -14,7 +14,7 @@ This makes it really easy!
 - [Setup](#%EF%B8%8F-setup)
 - [Quick Start](#-quick-start)
 - [Events and Requests](#events-and-requests)
-- [Skyrim Platform Interface](#)
+- [Skyrim Platform Interface](#skyrim-platform-interface)
   - [`getConnection`](#getconnection)
   - [`onConnected`](#onconnected)
   - [`onEvent`](#onevent)
