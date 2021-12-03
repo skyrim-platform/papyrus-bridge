@@ -183,6 +183,12 @@ The keyboard shortcut was pressed!
 
 You'll see in the documentation below that both Skyrim Platform and Papyrus provide similar functions for sending/receiving Events and Requests.
 
+# Lower-Case Events / Queries
+
+All event names and request queries **will be lowercase** when read by Skyrim Platform.
+
+This is because Papyrus is case insensitive and _sometimes sends inconsistently-cased event names and request queries_.
+
 # Skyrim Platform Interface
 
 ## `getConnection`
