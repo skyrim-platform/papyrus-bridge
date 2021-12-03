@@ -34,9 +34,7 @@ This makes it really easy!
 
 Download the `SkyrimPlatformPapyrusBridge` using your favorite mod manager:
 
-## https://nexus...
-
-> Optionally, download the example mod to get started!
+## https://www.nexusmods.com/skyrimspecialedition/mods/59468/
 
 # ⚙️ Setup
 
