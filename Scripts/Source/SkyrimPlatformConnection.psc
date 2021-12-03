@@ -1,8 +1,25 @@
 scriptName SkyrimPlatformConnection extends ReferenceAlias
+{Extend to implement a 'connection' which can communicate with Skyrim Platform
 
-; BeginRequest()
-; OnResponse()
-; timedOut = true
+```
+scriptName MyConnection extends SkyrimPlatformConnection
+
+event OnSetup()
+    ; Defaults to the name of the script, e.g. MyConnection
+    ConnectionName = "MyConnectionName"
+endEvent
+
+event OnConnected()
+endEvent
+
+event OnEvent(string eventName, string data)
+endEvent
+
+event OnRequest(string replyId, string query, string data)
+    Reply(replyId, "Response Data")
+endEvent
+```
+}
 
 string _connectionName
 SkyrimPlatformBridge _bridgeAPI
@@ -16,13 +33,13 @@ event OnInit()
     ConnectionAttemptTimeout = 1.0
     OnSetup()
     _bridgeAPI = SkyrimPlatformBridge.GetPrivateAPI()
-    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ConnectionName, "HandleSkyrimPlatformEvent")
+    SkyrimPlatformBridge.ListenForEvents_Alias(ConnectionName, self, "HandleSkyrimPlatformEvent")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
 event OnPlayerLoadGame()
     OnSetup()
-    RegisterForModEvent("SkyrimPlatformBridge_ModEvent_" + ConnectionName, "HandleSkyrimPlatformEvent")
+    SkyrimPlatformBridge.ListenForEvents_Alias(ConnectionName, self, "HandleSkyrimPlatformEvent")
     ConnectToSkyrimPlatform(ConnectionTimeout)
 endEvent
 
@@ -50,7 +67,8 @@ endFunction
 string property ConnectionName
     string function get()
         if ! _connectionName
-            ; ;;;;; ;
+            ; Get the scriptName of the current script
+            _connectionName = StringUtil.Substring(self, 1, StringUtil.Find(self, " ") - 1)
         endIf
         return _connectionName
     endFunction
@@ -89,31 +107,7 @@ string function Request(string query, string data = "", string target = "", stri
     if ! target
         target = ConnectionName
     endIf
-
-    string replyID = _bridgeAPI.GetUniqueReplyID()
-    xSkyrimPlatformBridge_Listener listener = _bridgeAPI.GetListener()
-    listener.ListenForReply(replyID)
-
-    float startQueryTime = Utility.GetCurrentRealTime()
-    _bridgeAPI.BeginRequestAPI(query, source, target, data, replyID)
-
-    string response = listener.GetResponse(replyID)
-    bool timedOut = ! response
-    while (! response) && (Utility.GetCurrentRealTime() - startQueryTime) < timeout
-        response = listener.GetResponse(replyID)
-        if response
-            timedOut = false
-        else
-            Utility.WaitMenuMode(waitInterval)
-        endIf
-    endWhile
-
-    if timedOut
-        return "SKYRIM_PLATFORM_REQUEST_TIMEOUT Exceeded " + timeout + " seconds"
-    else
-        ; Remove the 'RESPONSE:' prefix provided (so that Papyrus' GetResponse() works with empty responses)
-        return StringUtil.Substring(response, 9)
-    endIf
+    return _bridgeAPI.MakeRequestAPI(query, source, target, data, waitInterval, timeout)
 endFunction
 
 event OnEvent(string eventName, string data)
@@ -134,10 +128,12 @@ event OnConnected()
 endEvent
 
 event HandleSkyrimPlatformEvent(string messageType, string eventNameOrQuery, string source, string target, string data, string replyID)
-    if messageType == "event"
-        OnSkyrimPlatformEvent(eventNameOrQuery, source, data)
-    elseIf messageType == "request"
-        OnSkyrimPlatformRequest(replyId, eventNameOrQuery, data, source)
+    if target == ConnectionName
+        if messageType == "event"
+            OnSkyrimPlatformEvent(eventNameOrQuery, source, data)
+        elseIf messageType == "request"
+            OnSkyrimPlatformRequest(replyId, eventNameOrQuery, data, source)
+        endIf
     endIf
 endEvent
 

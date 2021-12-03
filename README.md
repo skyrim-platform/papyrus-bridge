@@ -28,16 +28,18 @@ This makes it really easy!
   - [`Reply`](#)
   - [`Send`](#)
   - [`Request`](#)
+  - [`SkyrimPlatformBridge`](#)
+    - [`SendEvent`](#)
+    - [`Reply`](#)
+    - [`ListenForEvents`](#)
 
 # 💾 Download
 
-Download the mod using your favorite mod manager:
-
-https://some/nexus/link
+x `TODO`
 
 # ⚙️ Setup
 
-xxx TODO xxx
+x
 
 # 🎓 Quick Start
 
@@ -211,6 +213,7 @@ connection.onRequest((request, reply) => {
 })
 ```
 
+
 ## `send`
 
 Sends an event to Papyrus.
@@ -224,6 +227,12 @@ connection.onConnected(() => {
     connection.send('someEventName', '[optional data]')
 })
 ```
+
+> To receive a `send()` event on Papyrus side:
+>
+> ```psc
+> ;
+> ```
 
 ## `request`
 
@@ -242,6 +251,12 @@ connection.onConnected(async () => {
     })
 })
 ```
+
+> To response to a `request()` on Papyrus side:
+>
+> ```psc
+> ;
+> ```
 
 # Papyrus Interface
 

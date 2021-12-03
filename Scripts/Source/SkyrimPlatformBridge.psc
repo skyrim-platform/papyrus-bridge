@@ -184,33 +184,33 @@ endEvent
 ; API Public Global Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-function SendEvent(string eventName, string source, string target, string data, string replyID = "") global
-    GetPrivateAPI().SendEventAPI(eventName, source, target, data, replyID)
+function SendEvent(string eventName, string target, string data = "", string source = "") global
+    GetPrivateAPI().SendEventAPI(eventName, source, target, data)
 endFunction
 
-function Reply(string eventName, string source, string target, string data, string replyId) global
+function Reply(string data = "", string replyId) global
     GetPrivateAPI().ReplyAPI(data, replyID)
 endFunction
 
-function ListenForEvent(Alias aliasListener, string eventName, string callbackFunction = "") global
-    if ! callbackFunction
-        string[] eventNameParts = StringUtil.Split(eventName, " ")
-        if eventNameParts.Length > 1
-            callbackFunction = "On"
-            int i = 0
-            while i < eventNameParts.Length
-                callbackFunction += eventNameParts[i]
-                i += 1
-            endWhile
-        else
-            callbackFunction = "On" + eventName
-        endIf
-    endIf
-    aliasListener.RegisterForModEvent("SkyrimPlatformBridge_Event_" + eventName, callbackFunction)
+string function Request(string query, string target, string data = "", string source = "", float waitInterval = 0.5, float timeout = 10.0) global
+    return GetPrivateAPI().MakeRequestAPI(query, source, target, data, waitInterval, timeout)
 endFunction
 
-; TODO ListenForModMessage()
-; TODO ListenForModEvent()
+function ListenForEvents_Alias(string connectionName, Alias callbackAlias, string callbackFunction) global
+    callbackAlias.RegisterForModEvent(GetEventsSkseModEventName(connectionName), callbackFunction)
+endFunction
+
+function ListenForEvents_Form(string connectionName, Form callbackForm, string callbackFunction) global
+    callbackForm.RegisterForModEvent(GetEventsSkseModEventName(connectionName), callbackFunction)
+endFunction
+
+function ListenForEvents_ActiveMagicEffect(string connectionName, ActiveMagicEffect callbackAME, string callbackFunction) global
+    callbackAME.RegisterForModEvent(GetEventsSkseModEventName(connectionName), callbackFunction)
+endFunction
+
+string function GetEventsSkseModEventName(string connectionName) global
+    return "SkyrimPlatformBridge_Event_" + connectionName
+endFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; API Instance Functions
@@ -274,6 +274,33 @@ function ReplyAPI(string replyId, string data)
         i += 1
     endWhile
     SendRawMessageAPI(eventText)
+endFunction
+
+string function MakeRequestAPI(string query, string source, string target, string data, float waitInterval = 0.5, float timeout = 10.0)
+    string replyID = GetUniqueReplyID()
+    xSkyrimPlatformBridge_Listener listener = GetListener()
+    listener.ListenForReply(replyID)
+
+    float startQueryTime = Utility.GetCurrentRealTime()
+    BeginRequestAPI(query, source, target, data, replyID)
+
+    string response = listener.GetResponse(replyID)
+    bool timedOut = ! response
+    while (! response) && (Utility.GetCurrentRealTime() - startQueryTime) < timeout
+        response = listener.GetResponse(replyID)
+        if response
+            timedOut = false
+        else
+            Utility.WaitMenuMode(waitInterval)
+        endIf
+    endWhile
+
+    if timedOut
+        return "SKYRIM_PLATFORM_REQUEST_TIMEOUT Exceeded " + timeout + " seconds"
+    else
+        ; Remove the 'RESPONSE:' prefix provided (so that Papyrus' GetResponse() works with empty responses)
+        return StringUtil.Substring(response, 9)
+    endIf
 endFunction
 
 string function BeginRequestAPI(string query, string source, string target, string data, string replyID)

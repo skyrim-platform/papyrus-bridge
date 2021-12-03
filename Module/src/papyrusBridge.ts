@@ -1,11 +1,11 @@
-import { on, once, Game, Form, writeLogs, printConsole, Debug } from 'skyrimPlatform'
+import { on, once, Game, Form, writeLogs } from 'skyrimPlatform'
 import * as sp from 'skyrimPlatform'
 
 const skyrimPlatformBridgeEsp = 'SkyrimPlatformBridge.esp'
 const skyrimPlatformBridgeMessagesContainerId = 0xd66
 const skyrimPlatformBridgeQuestId = 0x800
 
-const skseModEventNamePrefix_ModEvent = 'SkyrimPlatformBridge_ModEvent_' // Target a particular mod
+const skseModEventNamePrefix_ModEvent = 'SkyrimPlatformBridge_Event_' // Target a particular mod
 const skseModEventNamePrefix_GlobalEvent = 'SkyrimPlatformBridge_Event_' // Globally subscribe/publish
 const skseModEventNamePrefix_Response = 'SkyrimPlatformBridge_Response_' // Reserved for Response/Reply management
 
@@ -37,9 +37,7 @@ export interface PapyrusEvent {
 }
 
 export interface PapyrusResponse {
-    source: string,
-    target: string,
-    data?: any,
+    data: any,
     replyId: string
 }
 
@@ -71,10 +69,6 @@ interface MessageToSendToPapyrus {
     replyId?: string
 }
 
-function log(...args: any[]) {
-    writeLogs('papyrusBridge', Date.now(), args)
-}
-
 // TODO
 export class SkseModEvent {
 
@@ -101,7 +95,7 @@ export class PapyrusBridge {
     }
 
     public getConnectionName() {
-        return this.connectionName
+        return this.connectionName?.toLowerCase()
     }
 
     public onRequest(callback: (request: PapyrusRequest, reply: (data: any) => void) => void) {
@@ -143,7 +137,17 @@ export class PapyrusBridge {
         }
     }
 
-    sendModEvent(skseModEventName: string, parameterBuilder: (modEvent: any, handle: number) => void) {
+    public send(eventName: string, data?: any, target?: string, source?: string) {
+        this._sendEvent({ eventName, data, target, source })
+    }
+
+    public async request(query: string, data?: string, target?: string, source?: string): Promise<PapyrusResponse | undefined> {
+        return this._makeRequest({
+            query, data, target, source
+        })
+    }
+
+    _sendModEvent(skseModEventName: string, parameterBuilder: (modEvent: any, handle: number) => void) {
         once('update', () => {
             let quest: Form | null = null
             if (!this.questFormId) {
@@ -165,19 +169,15 @@ export class PapyrusBridge {
                     modEvent.send(handle)
                 }
             } else {
-                log(`Could not send message, Quest object ${skyrimPlatformBridgeQuestId.toString(16)} not found.`)
+                writeLogs('papyrusBridge', `Could not send message, Quest object ${skyrimPlatformBridgeQuestId.toString(16)} not found.`)
             }
         })
     }
 
-    public send(eventName: string, data?: any, target?: string, source?: string) {
-        this.sendEvent({ eventName, data, target, source })
-    }
-
-    sendEvent(event: PapyrusEvent) {
+    _sendEvent(event: PapyrusEvent) {
         const messageToSend = this._prepareMessageForSending('event', event)
         if (messageToSend) {
-            this.sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
+            this._sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
                 modEvent.pushString(handle, messageToSend.messageType)
                 modEvent.pushString(handle, messageToSend.eventNameOrQuery)
                 modEvent.pushString(handle, messageToSend.source)
@@ -188,20 +188,14 @@ export class PapyrusBridge {
         }
     }
 
-    public async request(query: string, data?: string, target?: string, source?: string): Promise<PapyrusResponse | undefined> {
-        return this.makeRequest({
-            query, data, target, source
-        })
-    }
-
-    async makeRequest(request: PapyrusRequest): Promise<PapyrusResponse | undefined> {
+    async _makeRequest(request: PapyrusRequest): Promise<PapyrusResponse | undefined> {
         return new Promise<PapyrusResponse | undefined>(resolve => {
             try {
                 const messageToSend = this._prepareMessageForSending('request', request)
                 if (messageToSend) {
                     if (! messageToSend.replyId) messageToSend.replyId = this.getUniqueReplyId()
                     this.requestResponsePromises.set(messageToSend.replyId, resolve)
-                    this.sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
+                    this._sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
                         modEvent.pushString(handle, messageToSend.messageType)
                         modEvent.pushString(handle, messageToSend.eventNameOrQuery)
                         modEvent.pushString(handle, messageToSend.source)
@@ -221,7 +215,7 @@ export class PapyrusBridge {
     _sendResponse(response: PapyrusResponse) {
         const messageToSend = this._prepareMessageForSending('response', response)
         if (messageToSend) {
-            this.sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
+            this._sendModEvent(messageToSend.skseModEventName, (modEvent, handle) => {
                 modEvent.pushString(handle, messageToSend.replyId)
                 modEvent.pushString(handle, messageToSend.dataText)
             })
@@ -233,7 +227,7 @@ export class PapyrusBridge {
 
         if (! target) {
             once('update', () => {
-                printConsole(`[PapyrusBridge] Tried sending event to null target ${JSON.stringify(message)}`)
+                writeLogs('papyrusBridge', `[PapyrusBridge] Tried sending event to null target ${JSON.stringify(message)}`)
             })
             return
         }
@@ -277,14 +271,13 @@ export class PapyrusBridge {
         if (eventParts.length < 4)
             return
         switch (messageType) {
-            case 'message': { return { source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), text: eventParts.slice(5).join('||') } }
             case 'event': { return { eventName: eventParts[1].toLowerCase(), source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), data: eventParts.slice(5).join('||') } }
-            case 'request': { return { query: eventParts[1].toLowerCase(), source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), replyId: eventParts[4], data: eventParts.slice(5).join('||') } }
-            case 'response': { return { source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), replyId: eventParts[4], data: eventParts.slice(5).join('||') } }
+            case 'request': { return { query: eventParts[1].toLowerCase(), source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), replyId: eventParts[4].toLowerCase(), data: eventParts.slice(5).join('||') } }
+            case 'response': { return { source: eventParts[2].toLowerCase(), target: eventParts[3].toLowerCase(), replyId: eventParts[4].toLowerCase(), data: eventParts.slice(5).join('||') } }
         }
     }
 
-    public getMessageType(receivedText: string): string | undefined {
+    getMessageType(receivedText: string): string | undefined {
         let messageType: string | undefined
         messageTypePrefixes.forEach((type, prefix) => {
             if (receivedText.startsWith(prefix)) {
@@ -294,7 +287,7 @@ export class PapyrusBridge {
         return messageType
     }
 
-    public getUniqueReplyId() {
+    getUniqueReplyId() {
         return `${Math.random()}_${Math.random()}`
     }
 
@@ -318,9 +311,7 @@ export class PapyrusBridge {
                 callback(request, (data: any) => {
                     this._sendResponse({
                         replyId: request.replyId!,
-                        target: request.source!,
-                        source: this.connectionName ?? '',
-                        data: data
+                        data
                     })
                 })
             })
@@ -329,7 +320,7 @@ export class PapyrusBridge {
 
     _onConnectedRequest(request: PapyrusRequest) {
         if ((! this.connectionName) || this.connectionName == request.source) {
-            this._sendResponse({ data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: request.replyId!, source: this.connectionName!, target: request.source! })
+            this._sendResponse({ data: skyrimPlatformBridgeConnectionRequestResponseText, replyId: request.replyId! })
             if (this.connectionName && ! this.isConnected) {
                 this.isConnected = true
             }
