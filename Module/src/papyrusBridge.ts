@@ -20,7 +20,7 @@ const skyrimPlatformBridgeConnectionRequestQueryName = 'SkyrimPlatformBridge_Con
 const skyrimPlatformBridgeConnectionRequestResponseText = 'CONNECTED'
 
 export function getVersion() {
-    return '1.0'
+    return '1.1'
 }
 
 const messageTypePrefixes = new Map<string, string>([

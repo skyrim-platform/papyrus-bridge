@@ -85,7 +85,7 @@ int NextListenerIndex
 bool property IsReady auto
 
 string function GetCurrentVersion() global
-    return "1.0"
+    return "1.1"
 endFunction
 
 SkyrimPlatformBridge function GetPrivateAPI() global
