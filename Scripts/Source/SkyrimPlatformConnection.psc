@@ -21,6 +21,8 @@ endEvent
 ```
 }
 
+Actor property Player auto
+
 string _connectionName
 SkyrimPlatformBridge _bridgeAPI
 
@@ -29,6 +31,7 @@ float property ConnectionTimeout auto
 float property ConnectionAttemptTimeout auto
 
 event OnInit()
+    Player = Game.GetPlayer()
     ConnectionTimeout = 30.0
     ConnectionAttemptTimeout = 1.0
     OnSetup()
