@@ -384,7 +384,11 @@ endFunction
 
 xSkyrimPlatformBridge_Listener function GetListener()
     ; Simple round-robin distribution, we don't lock or anything, each listener supports N ConnectedToSkyrimPlatform scripts
-    xSkyrimPlatformBridge_Listener listener = ListenerScripts[NextListenerIndex]
     NextListenerIndex += 1
-    return listener
+    int index = NextListenerIndex
+    if index >= ListenerScripts.Length
+        NextListenerIndex = 0
+        index = 0
+    endIf
+    return ListenerScripts[index]
 endFunction
