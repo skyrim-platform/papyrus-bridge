@@ -10,12 +10,11 @@
     Package="false"
     Final="false">
     <Variables>
-        <Variable Name="ModName" Value="SkyrimPlatformPapyrusBridge" />
         <Variable Name="ModsFolder" Value="C:\Users\mrowr\Dropbox\Skyrim\Mods" />
     </Variables>
     <Imports>
-        <Import>@ModsFolder\SKSE64\Scripts\Source</Import>
-        <Import>C:\Steam\steamapps\common\Skyrim Special Edition\Data\Scripts\Source</Import>
+        <Import>%SKYRIM_MODSPATH%\SKSE64\Scripts\Source</Import>
+        <Import>%SKYRIM_PATH%\Data\Scripts\Source</Import>
     </Imports>
     <Folders>
         <Folder>./Scripts/Source</Folder>

@@ -1,0 +1,15 @@
+{
+  "artificialDelayMilliseconds": 300,
+  "keepExistingTerminalsOpen": false,
+  "runOnStartup": false,
+  "terminals": [
+    {
+      "splitTerminals": [
+        {
+          "name": "",
+          "commands": ["cd skyrimPlatformPapyrusBridge", "yarn", "yarn watch"]
+        }
+      ]
+    }
+  ]
+}
