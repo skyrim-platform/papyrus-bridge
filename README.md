@@ -11,7 +11,6 @@ But communication between Papyrus and Skyrim Platform is not easy.
 This makes it really easy!
 
 - [Download](#-download)
-- [Setup](#%EF%B8%8F-setup)
 - [Quick Start](#-quick-start)
 - [Events and Requests](#events-and-requests)
 - [Skyrim Platform Interface](#skyrim-platform-interface)
@@ -34,23 +33,13 @@ This makes it really easy!
 
 Download the `SkyrimPlatformPapyrusBridge` using your favorite mod manager:
 
-## https://www.nexusmods.com/skyrimspecialedition/mods/59468/
+### https://www.nexusmods.com/skyrimspecialedition/mods/59468/
 
-# ⚙️ Setup
+Install the `@skyrim-platform/papyrus-bridge` library in your Skyrim Platform plugin:
 
-After downloading the mod, go ahead and open the directory where it was installed to.
-
-You will find a `PapyrusBridge` folder containing a `papyrusBridge.ts` file.
-
-This is the module you will be using to talk to Papyrus from Skyrim Platform.
-
-If you have a custom modules setup, point to this module from your `tsconfig.json`
-
-If you are using the typical Skyrim Platform plugin setup, copy this file into:
-
-`<Your Skyrim Special Edition Folder>\Data\Platform\Modules\`
-
-This will allow you to use it from your Skyrim Platform scripts.
+```
+npm i @skyrim-platform/papyrus-bridge
+```
 
 # 🎓 Quick Start
 
